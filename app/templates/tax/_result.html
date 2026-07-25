@@ -20,15 +20,25 @@
           <span class="muted">（{{ '手動上書き' if fv.income_tax_rate_mode == 'manual' else '自動判定' }}）</span>
         </td>
       </tr>
+      <tr class="sub"><th>所得税額（控除前）</th><td>{{ yen(result.income_tax_before_credits) }}</td></tr>
+      {% if result.housing_loan_credit %}
+        <tr class="sub"><th>− 住宅ローン控除</th><td>−{{ yen(result.housing_loan_credit) }}</td></tr>
+      {% endif %}
+      {% if result.furusato_income_tax_credit %}
+        <tr class="sub"><th>− ふるさと納税（所得税分）</th><td>−{{ yen(result.furusato_income_tax_credit) }}</td></tr>
+      {% endif %}
       <tr><th>所得税額</th><td>{{ yen(result.income_tax) }}</td></tr>
       <tr><th>復興特別所得税</th><td>{{ yen(result.reconstruction_tax) }}</td></tr>
+      {% if result.furusato_resident_credit %}
+        <tr class="sub"><th>住民税（ふるさと納税控除 −{{ yen(result.furusato_resident_credit) }}）</th><td></td></tr>
+      {% endif %}
       <tr><th>住民税</th><td>{{ yen(result.resident_tax) }}</td></tr>
       <tr><th>市県民税（均等割）</th><td>{{ yen(result.flat_rate_tax) }}</td></tr>
       <tr><th>消費税</th><td>{{ yen(result.consumption_tax) }}</td></tr>
       <tr class="total"><th>税金合計</th><td>{{ yen(result.total_tax) }}</td></tr>
       <tr><th>ふるさと納税上限額</th><td>{{ yen(result.furusato_limit) }}</td></tr>
-      <tr class="total"><th>手取り合計</th><td>{{ yen(result.net_income) }}</td></tr>
-      <tr><th>各種支払後残金</th><td>{{ yen(result.remaining) }}</td></tr>
+      <tr class="total"><th>税金及び経費支払い後残金</th><td>{{ yen(result.net_income) }}</td></tr>
+      <tr><th>社会保険料支払後合計</th><td>{{ yen(result.remaining) }}</td></tr>
     </tbody>
   </table>
 

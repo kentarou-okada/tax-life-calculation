@@ -49,11 +49,20 @@
                   <button type="submit" class="ghost tiny">改名</button>
                 </form>
               </td>
-              <td class="right">
+              <td class="right nowrap">
+                <button type="button" class="ghost tiny" title="上へ"
+                        hx-post="/living/category/{{ c.id }}/move" hx-vals='{"direction":"up"}'
+                        hx-target="#masters-body" hx-swap="outerHTML">↑</button>
+                <button type="button" class="ghost tiny" title="下へ"
+                        hx-post="/living/category/{{ c.id }}/move" hx-vals='{"direction":"down"}'
+                        hx-target="#masters-body" hx-swap="outerHTML">↓</button>
                 <button type="button" class="ghost tiny"
                         hx-post="/living/category/{{ c.id }}/toggle" hx-target="#masters-body" hx-swap="outerHTML">
-                  {{ '非表示にする' if c.is_active else '表示にする' }}
+                  {{ '非表示' if c.is_active else '表示' }}
                 </button>
+                <button type="button" class="ghost tiny danger"
+                        hx-post="/living/category/{{ c.id }}/delete" hx-target="#masters-body" hx-swap="outerHTML"
+                        hx-confirm="費目「{{ c.name }}」を削除します。よろしいですか？（実績・子費目があると削除されません）">削除</button>
               </td>
             </tr>
           {% endfor %}

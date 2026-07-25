@@ -170,6 +170,7 @@ def _form_from_db(param: TaxYearParam, tax_input: Optional[TaxYearInput]) -> Tax
         small_biz_mutual_aid_deduction=getattr(i, "small_biz_mutual_aid_deduction_manyen", 0.0) if i else 0.0,
         other_income_deduction=getattr(i, "other_income_deduction_manyen", 0.0) if i else 0.0,
         earthquake_insurance_deduction=getattr(i, "earthquake_insurance_deduction_manyen", 0.0) if i else 0.0,
+        housing_loan_deduction=getattr(i, "housing_loan_deduction_manyen", 0.0) if i else 0.0,
         donation=getattr(i, "donation_manyen", 0.0) if i else 0.0,
         # 年度パラメータ（マスタ）
         basic_deduction=param.basic_deduction_manyen,
@@ -214,6 +215,7 @@ def _build_inputs(fv: TaxFormValues) -> TaxInputs:
         small_biz_mutual_aid_deduction=fv.small_biz_mutual_aid_deduction,
         other_income_deduction=fv.other_income_deduction,
         earthquake_insurance_deduction=fv.earthquake_insurance_deduction,
+        housing_loan_deduction=fv.housing_loan_deduction,
         donation=fv.donation,
     )
 
@@ -316,6 +318,7 @@ def _fv_from_form(form) -> TaxFormValues:
         small_biz_mutual_aid_deduction=_f(form.get("small_biz_mutual_aid_deduction")),
         other_income_deduction=_f(form.get("other_income_deduction")),
         earthquake_insurance_deduction=_f(form.get("earthquake_insurance_deduction")),
+        housing_loan_deduction=_f(form.get("housing_loan_deduction")),
         donation=_f(form.get("donation")),
         basic_deduction=_f(form.get("basic_deduction")),
         blue_return_deduction=_f(form.get("blue_return_deduction")),
@@ -368,6 +371,7 @@ async def tax_save(request: Request, db: Session = Depends(get_db)):
     ti.small_biz_mutual_aid_deduction_manyen = fv.small_biz_mutual_aid_deduction
     ti.other_income_deduction_manyen = fv.other_income_deduction
     ti.earthquake_insurance_deduction_manyen = fv.earthquake_insurance_deduction
+    ti.housing_loan_deduction_manyen = fv.housing_loan_deduction
     ti.donation_manyen = fv.donation
     db.commit()
 
@@ -376,4 +380,22 @@ async def tax_save(request: Request, db: Session = Depends(get_db)):
         request,
         "tax/_result.html",
         {"year": year, "fv": fv, "result": result, "error": error, "saved": True},
+    )
+
+
+@router.post("/copy-prev-year", response_class=HTMLResponse)
+def tax_copy_prev_year(request: Request, year: int = Form(...), db: Session = Depends(get_db)):
+    """前年の税年度入力を当年フォームに流用する（保存はせず、確認後に保存ボタンで確定）。"""
+    prev = db.get(TaxYearInput, year - 1)
+    db_param = db.get(TaxYearParam, year)
+    if prev is None:
+        fv = _form_from_db(db_param, db.get(TaxYearInput, year))
+        notice = f"{year - 1} 年の入力がありません（先に {year - 1} 年を保存してください）。"
+    else:
+        # 前年の入力値を当年の year で写した fv を作る（マスタは当年のものを使用）
+        fv = _form_from_db(db_param, prev)
+        fv.year = year
+        notice = f"{year - 1} 年の入力を読み込みました。内容を確認して「保存」してください。"
+    return templates.TemplateResponse(
+        request, "tax/_panel.html", _panel_context(request, db, year, fv, notice=notice)
     )

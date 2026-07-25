@@ -13,11 +13,12 @@ from app.core.living import (
 
 def _rows_one_month(month: int = 3) -> list[EntryRow]:
     # 三井住友(2): 給与 850000(income), 食費 68000(expense)
-    # 楽天(1): 税金貯金 130000(saving), 電気 12340(expense)
+    # 楽天(1): 所得税(税金貯金) 130000, iDeco(積立貯金) 20000, 電気 12340(expense)
     return [
         EntryRow(bank_id=2, category_id=1, kind="income", month=month, amount_yen=850000),
         EntryRow(bank_id=2, category_id=3, kind="expense", month=month, amount_yen=68000),
-        EntryRow(bank_id=1, category_id=19, kind="saving", month=month, amount_yen=130000),
+        EntryRow(bank_id=1, category_id=19, kind="saving", month=month, amount_yen=130000, saving_group="tax"),
+        EntryRow(bank_id=1, category_id=25, kind="saving", month=month, amount_yen=20000, saving_group="reserve"),
         EntryRow(bank_id=1, category_id=5, kind="expense", month=month, amount_yen=12340),
     ]
 
@@ -26,16 +27,18 @@ def test_aggregate_month_totals():
     agg = aggregate_month(_rows_one_month())
     assert agg.income == 850000
     assert agg.expense == 80340          # 68000 + 12340
-    assert agg.saving == 130000
-    assert agg.payment == 210340         # expense + saving
-    assert agg.surplus == 639660         # 収入 - 総支払
+    assert agg.saving == 150000          # 130000 + 20000
+    assert agg.saving_tax == 130000      # 税金貯金
+    assert agg.saving_reserve == 20000   # 積立貯金
+    assert agg.payment == 230340         # expense + saving
+    assert agg.surplus == 619660         # 収入 - 総支払
 
 
 def test_aggregate_month_bank_breakdown():
     agg = aggregate_month(_rows_one_month())
-    # 流出（expense+saving）: 三井住友=68000, 楽天=130000+12340
+    # 流出（expense+saving）: 三井住友=68000, 楽天=130000+20000+12340
     assert agg.by_bank_outflow[2] == 68000
-    assert agg.by_bank_outflow[1] == 142340
+    assert agg.by_bank_outflow[1] == 162340
     # 収入: 三井住友=850000
     assert agg.by_bank_income[2] == 850000
 
@@ -44,11 +47,13 @@ def test_aggregate_year_rolls_up_months():
     rows = _rows_one_month(3) + _rows_one_month(4)
     ya = aggregate_year(rows)
     assert set(ya.months) >= set(range(1, 13))       # 12か月ぶん存在
-    assert ya.months[3].surplus == 639660
+    assert ya.months[3].surplus == 619660
     assert ya.months[5].income == 0                  # 未入力月は 0
     assert ya.total.income == 1700000                # 850000 * 2
-    assert ya.total.payment == 420680                # 210340 * 2
-    assert ya.total.by_bank_outflow[1] == 284680     # 142340 * 2
+    assert ya.total.payment == 460680                # 230340 * 2
+    assert ya.total.saving_tax == 260000             # 130000 * 2
+    assert ya.total.saving_reserve == 40000          # 20000 * 2
+    assert ya.total.by_bank_outflow[1] == 324680     # 162340 * 2
 
 
 def test_round10_and_manyen():

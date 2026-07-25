@@ -55,6 +55,7 @@ def inputs_from_db(ti: TaxYearInput) -> TaxInputs:
         small_biz_mutual_aid_deduction=ti.small_biz_mutual_aid_deduction_manyen,
         other_income_deduction=ti.other_income_deduction_manyen,
         earthquake_insurance_deduction=ti.earthquake_insurance_deduction_manyen,
+        housing_loan_deduction=ti.housing_loan_deduction_manyen,
         donation=ti.donation_manyen,
     )
 

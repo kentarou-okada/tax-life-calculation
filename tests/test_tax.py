@@ -53,30 +53,38 @@ def result_2025():
     return calculate_tax(PARAMS_2025_MANUAL, INPUTS_2025)
 
 
-def test_verification_table_2025(result_2025):
-    """REQUIREMENTS.md §4 検証表と一致する（小数第2位で比較）。"""
+def test_pretax_base_matches_section4(result_2025):
+    """§4 の骨格（所得・課税所得・控除前所得税額）は不変。控除前 = 89.54。"""
     r = result_2025
-    assert round(r.income, 2) == 975.0            # 所得金額
-    assert round(r.taxable_income, 2) == 747.7    # 課税所得金額
-    assert round(r.income_tax, 2) == 89.54        # 所得税額
-    assert round(r.reconstruction_tax, 2) == 1.88  # 復興特別所得税
-    assert round(r.resident_tax, 2) == 74.77      # 住民税
-    assert round(r.consumption_tax, 2) == 48.75   # 消費税
-    assert round(r.total_tax, 2) == 215.44        # 税金合計
-    assert round(r.net_income, 2) == 747.76       # 手取り合計
-    assert round(r.furusato_limit, 2) == 21.36    # ふるさと納税上限額
+    assert round(r.income, 2) == 975.0                     # 所得金額
+    assert round(r.taxable_income, 2) == 747.7            # 課税所得金額
+    assert round(r.income_tax_before_credits, 2) == 89.54  # 所得税額（税額控除前）
+
+
+def test_verification_table_2025_with_credits(result_2025):
+    """住宅ローン(0)・ふるさと納税(12万)の税額控除を反映した結果。
+
+    ふるさと base = 12 − 0.2 = 11.8万 → 所得税分 11.8×0.20=2.36 / 住民税分 11.8×0.80=9.44。
+    """
+    r = result_2025
+    assert round(r.furusato_income_tax_credit, 2) == 2.36
+    assert round(r.furusato_resident_credit, 2) == 9.44
+    assert r.housing_loan_credit == 0.0
+    assert round(r.income_tax, 2) == 87.18        # 89.54 − 2.36
+    assert round(r.reconstruction_tax, 2) == 1.83  # 87.18 × 0.021
+    assert round(r.resident_tax, 2) == 65.33      # 74.77 − 9.44
+    assert round(r.consumption_tax, 2) == 48.75
+    assert round(r.total_tax, 2) == 203.59        # 87.18+1.83+65.33+0.5+48.75
+    assert round(r.net_income, 2) == 836.41       # 事業1050 − 経費10 − 税203.59
+    assert round(r.remaining, 2) == 759.61        # 836.41 − 社会保険76.8
+    assert round(r.furusato_limit, 2) == 21.36
 
 
 def test_income_tax_uses_manual_override_not_auto(result_2025):
-    """§5-1: 課税所得747.7 は標準表なら23%区分だが、手動上書き20%/60万で89.54になること。
-
-    自動判定（23%）を使うと別値になり、89.54 にはならないことを対比で確認する。
-    """
-    # 手動上書きの結果
+    """§5-1: 課税所得747.7 は標準表なら23%区分だが、手動上書き20%/60万で控除前89.54になること。"""
     assert round(result_2025.income_tax_rate, 2) == 0.20
-    assert round(result_2025.income_tax, 2) == 89.54
+    assert round(result_2025.income_tax_before_credits, 2) == 89.54
 
-    # 同一入力を auto（標準表）で計算すると 23% 区分になり 89.54 と一致しない
     params_auto = TaxParams(
         basic_deduction=58.0,
         blue_return_deduction=65.0,
@@ -85,8 +93,21 @@ def test_income_tax_uses_manual_override_not_auto(result_2025):
     )
     r_auto = calculate_tax(params_auto, INPUTS_2025)
     assert r_auto.income_tax_rate == 0.23                 # 695〜900万 区分
-    assert round(r_auto.income_tax, 2) == 108.37          # 747.7*0.23-63.6
-    assert round(r_auto.income_tax, 2) != round(result_2025.income_tax, 2)
+    assert round(r_auto.income_tax_before_credits, 2) == 108.37  # 747.7*0.23-63.6
+    assert round(r_auto.income_tax_before_credits, 2) != round(result_2025.income_tax_before_credits, 2)
+
+
+def test_housing_loan_credit_reduces_income_tax():
+    """住宅ローン控除は所得税額から直接差し引かれ、0 の可能性もある。"""
+    from dataclasses import replace
+
+    inputs = replace(INPUTS_2025, donation=0.0, housing_loan_deduction=18.0)
+    r = calculate_tax(PARAMS_2025_MANUAL, inputs)
+    assert r.housing_loan_credit == 18.0
+    assert round(r.income_tax, 2) == round(89.54 - 18.0, 2)  # 71.54
+    # 0 なら控除前と一致
+    r0 = calculate_tax(PARAMS_2025_MANUAL, replace(INPUTS_2025, donation=0.0, housing_loan_deduction=0.0))
+    assert round(r0.income_tax, 2) == 89.54
 
 
 def test_auto_judgment_selects_23pct_for_747(result_2025):
@@ -100,16 +121,11 @@ def test_auto_judgment_selects_23pct_for_747(result_2025):
 
 
 def test_monthly_splits_2025(result_2025):
-    """税額の毎月分割（Excel R6/S6/W6）。"""
+    """税額の毎月分割は控除後の税額を分割数で割る。"""
     r = result_2025
-    assert r.income_tax_monthly == pytest.approx(89.54 / 5, abs=1e-6)       # 17.908
-    assert r.resident_tax_monthly == pytest.approx(74.77 / 4, abs=1e-6)     # 18.6925
-    assert r.consumption_tax_monthly == pytest.approx(48.75 / 5, abs=1e-6)  # 9.75
-
-
-def test_remaining_2025(result_2025):
-    """各種支払後残金（Excel F6 = 566.45966）。"""
-    assert round(result_2025.remaining, 2) == 566.46
+    assert r.income_tax_monthly == pytest.approx(r.income_tax / 5, abs=1e-9)
+    assert r.resident_tax_monthly == pytest.approx(r.resident_tax / 4, abs=1e-9)
+    assert r.consumption_tax_monthly == pytest.approx(r.consumption_tax / 5, abs=1e-9)
 
 
 @pytest.mark.parametrize(

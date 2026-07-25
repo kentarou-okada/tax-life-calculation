@@ -60,6 +60,25 @@ def _category_kind_map(db: Session) -> dict[int, str]:
     return {c.id: c.kind for c in _all_categories(db)}
 
 
+# 最上位の親名 → 貯蓄グループ。税金貯金 / 積立貯金 の子を分類する。
+_SAVING_GROUP_BY_TOP = {"税金貯金": "tax", "積立貯金": "reserve"}
+
+
+def _saving_group_map(db: Session) -> dict[int, str]:
+    """category_id -> 'tax'|'reserve'|''（kind=saving の分類。最上位の親名から決定）。"""
+    cats = {c.id: c for c in _all_categories(db)}
+    result: dict[int, str] = {}
+    for cid, c in cats.items():
+        if c.kind != "saving":
+            result[cid] = ""
+            continue
+        top = c
+        while top.parent_id is not None and top.parent_id in cats:
+            top = cats[top.parent_id]
+        result[cid] = _SAVING_GROUP_BY_TOP.get(top.name, "")
+    return result
+
+
 def _grid_rows(db: Session) -> list[dict]:
     """入力グリッドの行構造。子を持つカテゴリはヘッダ、葉カテゴリは入力行。"""
     cats = [c for c in _all_categories(db) if c.is_active == 1]
@@ -86,6 +105,7 @@ def _grid_rows(db: Session) -> list[dict]:
 # --------------------------------------------------------------------------- #
 def _entry_rows(db: Session, year: int, month: Optional[int] = None) -> list[EntryRow]:
     kinds = _category_kind_map(db)
+    saving_groups = _saving_group_map(db)
     stmt = select(MonthlyEntry).where(MonthlyEntry.year == year)
     if month is not None:
         stmt = stmt.where(MonthlyEntry.month == month)
@@ -96,6 +116,7 @@ def _entry_rows(db: Session, year: int, month: Optional[int] = None) -> list[Ent
             kind=kinds.get(e.category_id, "expense"),
             month=e.month,
             amount_yen=e.amount_yen,
+            saving_group=saving_groups.get(e.category_id, ""),
         )
         for e in db.scalars(stmt)
     ]
@@ -218,6 +239,43 @@ def living_entry(
     return templates.TemplateResponse(request, "living/_entry_response.html", ctx)
 
 
+@router.post("/copy-prev-month", response_class=HTMLResponse)
+def living_copy_prev_month(
+    request: Request, year: int = Form(...), month: int = Form(...), db: Session = Depends(get_db)
+):
+    """前月の入力を当月へコピーする（当月の既存セルは上書き）。1月は前年12月から。"""
+    prev_year, prev_month = (year - 1, 12) if month == 1 else (year, month - 1)
+    prev_entries = list(
+        db.scalars(
+            select(MonthlyEntry).where(MonthlyEntry.year == prev_year, MonthlyEntry.month == prev_month)
+        )
+    )
+    copied = 0
+    for pe in prev_entries:
+        existing = db.scalar(
+            select(MonthlyEntry).where(
+                MonthlyEntry.bank_id == pe.bank_id,
+                MonthlyEntry.category_id == pe.category_id,
+                MonthlyEntry.year == year,
+                MonthlyEntry.month == month,
+            )
+        )
+        if existing is None:
+            db.add(MonthlyEntry(bank_id=pe.bank_id, category_id=pe.category_id, year=year, month=month, amount_yen=pe.amount_yen))
+        else:
+            existing.amount_yen = pe.amount_yen
+        copied += 1
+    db.commit()
+
+    ctx = _panel_context(request, db, year, month)
+    ctx["notice"] = (
+        f"{prev_year}年{prev_month}月の入力を {copied} 件コピーしました。"
+        if copied
+        else f"{prev_year}年{prev_month}月に入力がありません。"
+    )
+    return templates.TemplateResponse(request, "living/_month_panel.html", ctx)
+
+
 # --------------------------------------------------------------------------- #
 # ルート：マスタ管理（銀行・カテゴリ）
 # --------------------------------------------------------------------------- #
@@ -312,3 +370,49 @@ def toggle_category(request: Request, category_id: int, db: Session = Depends(ge
         c.is_active = 0 if c.is_active else 1
         db.commit()
     return _masters_response(request, db, "費目の表示状態を更新しました。")
+
+
+@router.post("/category/{category_id}/delete", response_class=HTMLResponse)
+def delete_category(request: Request, category_id: int, db: Session = Depends(get_db)):
+    """費目を削除する。子や実績（月次エントリ）がある場合は削除せず案内する（履歴保護）。"""
+    c = db.get(Category, category_id)
+    if c is None:
+        return _masters_response(request, db, "対象の費目が見つかりません。")
+    has_child = db.scalar(select(Category.id).where(Category.parent_id == category_id).limit(1))
+    if has_child is not None:
+        return _masters_response(request, db, f"「{c.name}」は子費目があるため削除できません（先に子を削除）。")
+    has_entry = db.scalar(select(MonthlyEntry.id).where(MonthlyEntry.category_id == category_id).limit(1))
+    if has_entry is not None:
+        return _masters_response(
+            request, db, f"「{c.name}」は入力実績があるため削除できません。「非表示」をご利用ください。"
+        )
+    name = c.name
+    db.delete(c)
+    db.commit()
+    return _masters_response(request, db, f"費目「{name}」を削除しました。")
+
+
+@router.post("/category/{category_id}/move", response_class=HTMLResponse)
+def move_category(request: Request, category_id: int, direction: str = Form(...), db: Session = Depends(get_db)):
+    """同じ親・同じ並びの中で費目の表示順を上下に入れ替える。"""
+    c = db.get(Category, category_id)
+    if c is None:
+        return _masters_response(request, db, "対象の費目が見つかりません。")
+    siblings = list(
+        db.scalars(
+            select(Category)
+            .where(Category.parent_id.is_(None) if c.parent_id is None else Category.parent_id == c.parent_id)
+            .order_by(Category.display_order, Category.id)
+        )
+    )
+    idx = next((i for i, s in enumerate(siblings) if s.id == c.id), None)
+    swap = idx - 1 if direction == "up" else idx + 1
+    if idx is not None and 0 <= swap < len(siblings):
+        other = siblings[swap]
+        c.display_order, other.display_order = other.display_order, c.display_order
+        # display_order が同値だと入れ替わらないため、必要なら再採番
+        if c.display_order == other.display_order:
+            c.display_order = swap
+            other.display_order = idx
+        db.commit()
+    return _masters_response(request, db, "表示順を更新しました。")

@@ -28,10 +28,8 @@ DEFAULT_CATEGORIES: list[tuple[str, str, list[str]]] = [
     ("expense", "返済", []),
     ("expense", "小遣い", []),
     ("expense", "その他", []),
-    ("saving", "税金貯金", []),
-    ("saving", "iDeco", []),
-    ("saving", "NISA", []),
-    ("saving", "小規模企業共済", []),
+    ("saving", "税金貯金", ["所得税", "住民税", "消費税", "固定資産税"]),
+    ("saving", "積立貯金", ["iDeco", "小規模企業共済", "NISA", "年金保険", "現金貯蓄"]),
 ]
 
 

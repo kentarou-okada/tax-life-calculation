@@ -8,7 +8,16 @@
     {% endfor %}
   </div>
 
-  <h3>{{ year }} 年 {{ month }} 月の入力</h3>
+  <div class="month-head">
+    <h3>{{ year }} 年 {{ month }} 月の入力</h3>
+    <button type="button" class="ghost tiny"
+            hx-post="/living/copy-prev-month" hx-target="#month-panel" hx-swap="outerHTML"
+            hx-vals='{"year": {{ year }}, "month": {{ month }}}'
+            hx-confirm="前月の入力を {{ month }}月へコピーします（同じ銀行×費目は上書き）。よろしいですか？">
+      前月の入力をコピー
+    </button>
+  </div>
+  {% if notice is defined and notice %}<p class="notice-inline">{{ notice }}</p>{% endif %}
   <p class="hint muted">セルに金額（円・10円単位）を入力すると即時に集計へ反映されます。空欄・0 は未計上。</p>
 
   <div class="table-scroll">

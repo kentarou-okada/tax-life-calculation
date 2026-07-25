@@ -5,7 +5,8 @@
   <div class="stat {{ 'neg' if month_agg.surplus < 0 else 'pos' }}">
     <span class="lbl">余剰金</span><span class="val">{{ "{:,}".format(month_agg.surplus) }} 円</span>
   </div>
-  <div class="stat"><span class="lbl">うち積立・税金貯金</span><span class="val">{{ "{:,}".format(month_agg.saving) }} 円</span></div>
+  <div class="stat"><span class="lbl">うち税金貯金</span><span class="val">{{ "{:,}".format(month_agg.saving_tax) }} 円</span></div>
+  <div class="stat"><span class="lbl">うち積立貯金</span><span class="val">{{ "{:,}".format(month_agg.saving_reserve) }} 円</span></div>
 </div>
 
 <div class="bank-breakdown">

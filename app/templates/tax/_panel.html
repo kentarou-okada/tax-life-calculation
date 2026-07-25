@@ -65,7 +65,9 @@
         {{ numfield('小規模企業共済等掛金控除', 'small_biz_mutual_aid_deduction', fv.small_biz_mutual_aid_deduction) }}
         {{ numfield('その他所得控除', 'other_income_deduction', fv.other_income_deduction) }}
         {{ numfield('地震保険料控除', 'earthquake_insurance_deduction', fv.earthquake_insurance_deduction) }}
+        {{ numfield('住宅ローン控除', 'housing_loan_deduction', fv.housing_loan_deduction) }}
         {{ numfield('寄付金（ふるさと納税）', 'donation', fv.donation) }}
+        <p class="hint muted">※住宅ローン控除は税額控除（0 可）で所得税額から直接差し引きます。寄付金は自己負担2000円を除いた額を所得税・住民税から控除します。</p>
       </fieldset>
 
       <fieldset>
@@ -99,6 +101,11 @@
       <div class="actions">
         <button type="button" class="primary"
                 hx-post="/tax/save" hx-target="#result" hx-swap="innerHTML">この年度の入力を保存</button>
+        <button type="button" class="ghost"
+                hx-post="/tax/copy-prev-year" hx-target="#panel" hx-swap="outerHTML"
+                hx-confirm="{{ year - 1 }} 年の入力を読み込みます。現在の未保存の変更は失われます。よろしいですか？">
+          前年（{{ year - 1 }}年）の入力をコピー
+        </button>
       </div>
     </form>
 

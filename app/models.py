@@ -187,6 +187,8 @@ class TaxYearInput(Base):
     small_biz_mutual_aid_deduction_manyen: Mapped[float] = mapped_column(nullable=False, default=0, server_default=text("0"))
     other_income_deduction_manyen: Mapped[float] = mapped_column(nullable=False, default=0, server_default=text("0"))
     earthquake_insurance_deduction_manyen: Mapped[float] = mapped_column(nullable=False, default=0, server_default=text("0"))
+    # 住宅ローン控除（税額控除・所得税額から差引）
+    housing_loan_deduction_manyen: Mapped[float] = mapped_column(nullable=False, default=0, server_default=text("0"))
     # 寄付金
     donation_manyen: Mapped[float] = mapped_column(nullable=False, default=0, server_default=text("0"))
     created_at: Mapped[str] = mapped_column(Text, nullable=False, server_default=_NOW)

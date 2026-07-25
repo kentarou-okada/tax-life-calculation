@@ -16,13 +16,18 @@ from typing import Iterable
 
 @dataclass(frozen=True)
 class EntryRow:
-    """集計対象の 1 エントリ。kind は費目カテゴリの種別。"""
+    """集計対象の 1 エントリ。kind は費目カテゴリの種別。
+
+    saving_group は kind=saving のとき 'tax'（税金貯金）/ 'reserve'（積立貯金）を表す。
+    最上位の親カテゴリ（税金貯金 / 積立貯金）から決まる。
+    """
 
     bank_id: int
     category_id: int
     kind: str  # 'income' | 'expense' | 'saving'
     month: int
     amount_yen: int
+    saving_group: str = ""  # 'tax' | 'reserve' | ''
 
 
 @dataclass
@@ -31,7 +36,9 @@ class MonthAggregate:
 
     income: int = 0            # 総収入（kind=income）
     expense: int = 0          # 支払（kind=expense）
-    saving: int = 0           # 積立・税金貯金（kind=saving）
+    saving: int = 0           # 貯蓄合計（税金貯金＋積立貯金）
+    saving_tax: int = 0       # うち 税金貯金
+    saving_reserve: int = 0   # うち 積立貯金
     by_bank_outflow: dict[int, int] = field(default_factory=dict)  # 銀行別の流出合計（expense+saving）
     by_bank_income: dict[int, int] = field(default_factory=dict)   # 銀行別の収入合計
 
@@ -46,19 +53,28 @@ class MonthAggregate:
         return self.income - self.payment
 
 
+def _accumulate(agg: MonthAggregate, r: EntryRow) -> None:
+    if r.kind == "income":
+        agg.income += r.amount_yen
+        agg.by_bank_income[r.bank_id] = agg.by_bank_income.get(r.bank_id, 0) + r.amount_yen
+        return
+    # expense / saving は流出
+    if r.kind == "saving":
+        agg.saving += r.amount_yen
+        if r.saving_group == "tax":
+            agg.saving_tax += r.amount_yen
+        elif r.saving_group == "reserve":
+            agg.saving_reserve += r.amount_yen
+    else:
+        agg.expense += r.amount_yen
+    agg.by_bank_outflow[r.bank_id] = agg.by_bank_outflow.get(r.bank_id, 0) + r.amount_yen
+
+
 def aggregate_month(rows: Iterable[EntryRow]) -> MonthAggregate:
     """単一月のエントリ群を集計する。"""
     agg = MonthAggregate()
     for r in rows:
-        if r.kind == "income":
-            agg.income += r.amount_yen
-            agg.by_bank_income[r.bank_id] = agg.by_bank_income.get(r.bank_id, 0) + r.amount_yen
-        else:  # expense or saving は流出
-            if r.kind == "saving":
-                agg.saving += r.amount_yen
-            else:
-                agg.expense += r.amount_yen
-            agg.by_bank_outflow[r.bank_id] = agg.by_bank_outflow.get(r.bank_id, 0) + r.amount_yen
+        _accumulate(agg, r)
     return agg
 
 
@@ -76,21 +92,9 @@ def aggregate_year(rows: Iterable[EntryRow]) -> YearAggregate:
     for m in range(1, 13):
         ya.months[m] = MonthAggregate()
     for r in rows:
-        m = ya.months.setdefault(r.month, MonthAggregate())
-        if r.kind == "income":
-            m.income += r.amount_yen
-            m.by_bank_income[r.bank_id] = m.by_bank_income.get(r.bank_id, 0) + r.amount_yen
-            ya.total.income += r.amount_yen
-            ya.total.by_bank_income[r.bank_id] = ya.total.by_bank_income.get(r.bank_id, 0) + r.amount_yen
-        else:
-            if r.kind == "saving":
-                m.saving += r.amount_yen
-                ya.total.saving += r.amount_yen
-            else:
-                m.expense += r.amount_yen
-                ya.total.expense += r.amount_yen
-            m.by_bank_outflow[r.bank_id] = m.by_bank_outflow.get(r.bank_id, 0) + r.amount_yen
-            ya.total.by_bank_outflow[r.bank_id] = ya.total.by_bank_outflow.get(r.bank_id, 0) + r.amount_yen
+        month_agg = ya.months.setdefault(r.month, MonthAggregate())
+        _accumulate(month_agg, r)
+        _accumulate(ya.total, r)
     return ya
 
 

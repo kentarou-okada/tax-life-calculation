@@ -19,6 +19,23 @@ from app import models  # noqa: F401
 from app.seeds.living_masters import seed_living_masters
 from app.seeds.tax_masters import seed_tax_masters
 
+# create_all は既存テーブルへの列追加を行わないため、後方互換のための軽量マイグレーション。
+# (テーブル, 列, 定義) 既存DBに列が無ければ ADD COLUMN する。
+_COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
+    ("tax_year_input", "housing_loan_deduction_manyen", "REAL NOT NULL DEFAULT 0"),
+]
+
+
+def _apply_column_migrations() -> list[str]:
+    applied: list[str] = []
+    with engine.begin() as conn:
+        for table, column, ddl in _COLUMN_MIGRATIONS:
+            cols = {row[1] for row in conn.exec_driver_sql(f"PRAGMA table_info({table})")}
+            if column not in cols:
+                conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}")
+                applied.append(f"{table}.{column}")
+    return applied
+
 
 def main() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -26,6 +43,10 @@ def main() -> None:
     print(f"DB: {DB_PATH}")
     Base.metadata.create_all(engine)
     print(f"テーブル作成完了: {', '.join(sorted(Base.metadata.tables))}")
+
+    migrated = _apply_column_migrations()
+    if migrated:
+        print(f"列マイグレーション適用: {', '.join(migrated)}")
 
     with SessionLocal() as session:
         tax_result = seed_tax_masters(session)

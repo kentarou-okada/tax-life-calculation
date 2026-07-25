@@ -169,3 +169,10 @@ button.ghost.tiny { padding: 0.15rem 0.45rem; font-size: 0.75rem; }
 .backup-msg { font-size: 0.82rem; }
 .backup-msg.ok { color: var(--ok); }
 .backup-msg.err { color: var(--err); }
+
+.month-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+.month-head h3 { margin: 0; }
+.master-table td.nowrap { white-space: nowrap; }
+button.ghost.danger { color: var(--err); border-color: #fecaca; }
+button.ghost.danger:hover { background: #fef2f2; }
+.actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
