@@ -35,10 +35,21 @@ main { padding: 1.25rem; max-width: 1100px; margin: 0 auto; }
 .muted { color: var(--muted); }
 
 .year-bar {
-  display: flex; align-items: center; gap: 0.75rem;
-  margin-bottom: 1rem;
+  display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+  margin-bottom: 0.75rem;
 }
 .year-bar select { padding: 0.35rem 0.5rem; font-size: 1rem; }
+.add-year { display: inline-flex; align-items: center; gap: 0.35rem; margin: 0; }
+.add-year input[type="number"] { width: 6rem; padding: 0.3rem 0.4rem; font-size: 0.9rem; }
+button.ghost {
+  background: transparent; color: var(--accent); border: 1px solid var(--accent);
+  padding: 0.32rem 0.7rem; border-radius: 8px; font-size: 0.85rem; cursor: pointer;
+}
+button.ghost:hover { background: var(--total); }
+.notice-inline {
+  margin: 0 0 0.9rem; padding: 0.5rem 0.75rem; border-radius: 8px;
+  background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; font-size: 0.88rem;
+}
 
 .layout {
   display: grid;

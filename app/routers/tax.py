@@ -4,6 +4,7 @@
 - GET  /tax/panel?year=…   … 年度切替時のパネル（フォーム＋結果）差し替え
 - POST /tax/calculate      … 入力変更時の結果フラグメント再計算（永続化しない）
 - POST /tax/save           … 入力・年度パラメータを保存し結果フラグメントを返す
+- POST /tax/add-year       … 新しい税年度を追加（直近年度の設定を引き継ぐ）してパネルを返す
 
 計算そのものは app.core.tax の純粋関数に委譲し、本モジュールは DB とフォームの橋渡しに徹する。
 """
@@ -23,6 +24,11 @@ from app.config import BASE_DIR
 from app.core.tax import Bracket, TaxInputs, TaxParams, TaxResult, calculate_tax
 from app.db import SessionLocal
 from app.models import TaxBracket, TaxYearInput, TaxYearParam
+from app.seeds.tax_masters import STANDARD_BRACKETS
+
+# 追加可能な年度の範囲（現実的なガード）
+MIN_YEAR = 2000
+MAX_YEAR = 2100
 
 router = APIRouter(prefix="/tax", tags=["tax"])
 templates = Jinja2Templates(directory=str(Path(BASE_DIR) / "app" / "templates"))
@@ -56,6 +62,59 @@ def _default_year(years: list[int]) -> Optional[int]:
     current = _dt.date.today().year
     candidates = [y for y in years if y <= current]
     return max(candidates) if candidates else min(years)
+
+
+def _create_year(db: Session, year: int, source_year: Optional[int]) -> None:
+    """新しい税年度の tax_year_param と累進表を作成する。
+
+    source_year があればその年度の設定・累進表を引き継ぐ（毎年の運用で前年設定を土台にできる）。
+    無ければモデル既定値＋標準累進表（REQUIREMENTS.md §4）で作成する。
+    """
+    src = db.get(TaxYearParam, source_year) if source_year is not None else None
+    if src is not None:
+        db.add(
+            TaxYearParam(
+                year=year,
+                basic_deduction_manyen=src.basic_deduction_manyen,
+                blue_return_deduction_manyen=src.blue_return_deduction_manyen,
+                flat_rate_tax_manyen=src.flat_rate_tax_manyen,
+                reconstruction_tax_rate=src.reconstruction_tax_rate,
+                resident_tax_rate=src.resident_tax_rate,
+                resident_tax_deduction_manyen=src.resident_tax_deduction_manyen,
+                income_tax_rate_mode=src.income_tax_rate_mode,
+                income_tax_rate_override=src.income_tax_rate_override,
+                income_tax_deduction_override=src.income_tax_deduction_override,
+                consumption_tax_method=src.consumption_tax_method,
+                consumption_tax_rate=src.consumption_tax_rate,
+                furusato_method=src.furusato_method,
+                income_tax_split_count=src.income_tax_split_count,
+                resident_tax_split_count=src.resident_tax_split_count,
+                consumption_tax_split_count=src.consumption_tax_split_count,
+            )
+        )
+        for b in src.brackets:
+            db.add(
+                TaxBracket(
+                    year=year,
+                    lower_bound_manyen=b.lower_bound_manyen,
+                    upper_bound_manyen=b.upper_bound_manyen,
+                    rate=b.rate,
+                    deduction_manyen=b.deduction_manyen,
+                )
+            )
+    else:
+        db.add(TaxYearParam(year=year))
+        for lower, upper, rate, ded in STANDARD_BRACKETS:
+            db.add(
+                TaxBracket(
+                    year=year,
+                    lower_bound_manyen=lower,
+                    upper_bound_manyen=upper,
+                    rate=rate,
+                    deduction_manyen=ded,
+                )
+            )
+    db.commit()
 
 
 def _brackets_for(db: Session, year: int) -> tuple[Bracket, ...]:
@@ -172,7 +231,14 @@ def _compute(db: Session, db_param: TaxYearParam, fv: TaxFormValues) -> tuple[Op
 # --------------------------------------------------------------------------- #
 # ルート
 # --------------------------------------------------------------------------- #
-def _panel_context(request: Request, db: Session, year: int, fv: TaxFormValues, saved: bool = False) -> dict:
+def _panel_context(
+    request: Request,
+    db: Session,
+    year: int,
+    fv: TaxFormValues,
+    saved: bool = False,
+    notice: Optional[str] = None,
+) -> dict:
     db_param = db.get(TaxYearParam, year)
     result, error = _compute(db, db_param, fv)
     return {
@@ -183,6 +249,7 @@ def _panel_context(request: Request, db: Session, year: int, fv: TaxFormValues, 
         "result": result,
         "error": error,
         "saved": saved,
+        "notice": notice,
         "consumption_methods": CONSUMPTION_METHODS,
     }
 
@@ -205,6 +272,36 @@ def tax_panel(request: Request, year: int, db: Session = Depends(get_db)):
     db_param = db.get(TaxYearParam, year)
     fv = _form_from_db(db_param, db.get(TaxYearInput, year))
     return templates.TemplateResponse(request, "tax/_panel.html", _panel_context(request, db, year, fv))
+
+
+@router.post("/add-year", response_class=HTMLResponse)
+def tax_add_year(
+    request: Request, new_year: Optional[int] = Form(default=None), db: Session = Depends(get_db)
+):
+    """新しい税年度を追加してそのパネルを返す。範囲外・重複は既定年度へフォールバックし通知する。"""
+    years = _available_years(db)
+
+    if new_year is None or not (MIN_YEAR <= new_year <= MAX_YEAR):
+        target = _default_year(years)
+        notice = f"{MIN_YEAR}〜{MAX_YEAR} の範囲で年度を入力してください。"
+    elif new_year in years:
+        target = new_year
+        notice = f"{new_year} 年はすでに存在します。切り替えました。"
+    else:
+        _create_year(db, new_year, source_year=max(years) if years else None)
+        target = new_year
+        src = max(years) if years else None
+        notice = (
+            f"{new_year} 年を追加しました（{src} 年の設定を引き継ぎ）。"
+            if src is not None
+            else f"{new_year} 年を追加しました。"
+        )
+
+    db_param = db.get(TaxYearParam, target)
+    fv = _form_from_db(db_param, db.get(TaxYearInput, target))
+    return templates.TemplateResponse(
+        request, "tax/_panel.html", _panel_context(request, db, target, fv, notice=notice)
+    )
 
 
 def _fv_from_form(form) -> TaxFormValues:

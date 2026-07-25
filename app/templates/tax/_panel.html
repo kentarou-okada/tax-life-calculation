@@ -18,8 +18,19 @@
         <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }} 年</option>
       {% endfor %}
     </select>
+
+    <form class="add-year" hx-post="/tax/add-year" hx-target="#panel" hx-swap="outerHTML">
+      <input type="number" name="new_year" min="2000" max="2100" step="1" placeholder="例 2028"
+             aria-label="追加する年度">
+      <button type="submit" class="ghost">＋年度を追加</button>
+    </form>
+
     <span class="muted">単位＝万円</span>
   </div>
+
+  {% if notice %}
+    <p class="notice-inline">{{ notice }}</p>
+  {% endif %}
 
   <div class="layout">
     {# ============ 入力フォーム ============ #}
