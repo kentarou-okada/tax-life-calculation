@@ -1,0 +1,26 @@
+# --- 実データ・秘匿情報（REQUIREMENTS.md §2: コードと実データを分離）---
+*.db
+*.sqlite
+*.sqlite3
+data/*.db
+# 実際の金額を含むJSON・CSV/Excelエクスポート等はここへ
+data/private/
+# 既存Excel（実データを含む）。ローカルにのみ保持
+sample-file.xlsx
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- OS / IDE ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
