@@ -1,0 +1,52 @@
+{# 月エディタ：月タブ＋（銀行×費目）入力グリッド＋月次集計 #}
+<div id="month-panel" class="card">
+  <div class="month-tabs">
+    {% for m in months %}
+      <button type="button" class="tab {% if m == month %}active{% endif %}"
+              hx-get="/living/month?year={{ year }}&month={{ m }}"
+              hx-target="#month-panel" hx-swap="outerHTML">{{ m }}月</button>
+    {% endfor %}
+  </div>
+
+  <h3>{{ year }} 年 {{ month }} 月の入力</h3>
+  <p class="hint muted">セルに金額（円・10円単位）を入力すると即時に集計へ反映されます。空欄・0 は未計上。</p>
+
+  <div class="table-scroll">
+    <table class="grid-table">
+      <thead>
+        <tr>
+          <th class="cat-col">費目 ＼ 銀行</th>
+          {% for b in banks %}<th>{{ b.name }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in grid_rows %}
+          {% if row.type == 'header' %}
+            <tr class="grp"><th class="cat-col" colspan="{{ banks|length + 1 }}">{{ row.category.name }}</th></tr>
+          {% else %}
+            {% set cat = row.category %}
+            <tr>
+              <th class="cat-col {{ 'child' if cat.parent_id }}">
+                {{ cat.name }}
+                <span class="kind-tag {{ cat.kind }}">{{ {'income':'収','expense':'支','saving':'貯'}[cat.kind] }}</span>
+              </th>
+              {% for b in banks %}
+                <td>
+                  <input type="number" step="10" min="0" name="amount_yen" class="amt"
+                         value="{{ entry_map.get(b.id ~ ':' ~ cat.id, '') }}"
+                         hx-post="/living/entry" hx-trigger="change"
+                         hx-vals='{"bank_id": {{ b.id }}, "category_id": {{ cat.id }}, "year": {{ year }}, "month": {{ month }}}'
+                         hx-target="#month-summary" hx-swap="innerHTML">
+                </td>
+              {% endfor %}
+            </tr>
+          {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div id="month-summary">
+    {% include "living/_month_summary_inner.html" %}
+  </div>
+</div>

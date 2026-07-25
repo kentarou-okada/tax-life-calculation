@@ -1,0 +1,80 @@
+{# 銀行・費目カテゴリの一覧＋追加/改名/有効切替（#masters-body を差し替え） #}
+<div id="masters-body">
+  {% if notice %}<p class="notice-inline">{{ notice }}</p>{% endif %}
+
+  <div class="layout">
+    {# ---------- 銀行 ---------- #}
+    <div class="card">
+      <h3>銀行（口座）</h3>
+      <table class="master-table">
+        <tbody>
+          {% for b in banks %}
+            <tr class="{{ '' if b.is_active else 'inactive' }}">
+              <td>
+                <form hx-post="/living/bank/{{ b.id }}/rename" hx-target="#masters-body" hx-swap="outerHTML"
+                      class="inline-edit">
+                  <input type="text" name="name" value="{{ b.name }}">
+                  <button type="submit" class="ghost tiny">改名</button>
+                </form>
+              </td>
+              <td class="right">
+                <button type="button" class="ghost tiny"
+                        hx-post="/living/bank/{{ b.id }}/toggle" hx-target="#masters-body" hx-swap="outerHTML">
+                  {{ '非表示にする' if b.is_active else '表示にする' }}
+                </button>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <form hx-post="/living/bank" hx-target="#masters-body" hx-swap="outerHTML" class="add-row">
+        <input type="text" name="name" placeholder="新しい銀行名" required>
+        <button type="submit" class="primary">追加</button>
+      </form>
+    </div>
+
+    {# ---------- 費目カテゴリ ---------- #}
+    <div class="card">
+      <h3>費目カテゴリ</h3>
+      <table class="master-table">
+        <tbody>
+          {% for c in categories %}
+            <tr class="{{ '' if c.is_active else 'inactive' }}">
+              <td>
+                <form hx-post="/living/category/{{ c.id }}/rename" hx-target="#masters-body" hx-swap="outerHTML"
+                      class="inline-edit">
+                  <span class="kind-tag {{ c.kind }}">{{ kind_labels[c.kind] }}</span>
+                  {% if c.parent_id %}<span class="child-mark">└</span>{% endif %}
+                  <input type="text" name="name" value="{{ c.name }}">
+                  <button type="submit" class="ghost tiny">改名</button>
+                </form>
+              </td>
+              <td class="right">
+                <button type="button" class="ghost tiny"
+                        hx-post="/living/category/{{ c.id }}/toggle" hx-target="#masters-body" hx-swap="outerHTML">
+                  {{ '非表示にする' if c.is_active else '表示にする' }}
+                </button>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <form hx-post="/living/category" hx-target="#masters-body" hx-swap="outerHTML" class="add-row wrap">
+        <input type="text" name="name" placeholder="新しい費目名" required>
+        <select name="kind">
+          <option value="expense">支払</option>
+          <option value="income">収入</option>
+          <option value="saving">積立・税金貯金</option>
+        </select>
+        <select name="parent_id">
+          <option value="">（親なし・最上位）</option>
+          {% for c in top_categories %}
+            <option value="{{ c.id }}">{{ c.name }} の子</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="primary">追加</button>
+      </form>
+      <p class="hint muted">※ 子として追加すると種別は親に合わせます。使わない費目は「非表示」で一覧・グリッドから外せます（履歴は保持）。</p>
+    </div>
+  </div>
+</div>

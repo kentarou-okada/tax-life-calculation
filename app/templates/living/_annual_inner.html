@@ -1,0 +1,53 @@
+{# 年次サマリ（月別 収入/支払/余剰 ＋ 税金貯金目安）と 銀行別 年間内訳 #}
+<div class="card">
+  <h3>{{ year }} 年サマリ</h3>
+  <div class="table-scroll">
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>月</th><th>収入</th><th>支払</th><th>余剰金</th><th>税金貯金目安</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in range(1, 13) %}
+          {% set ma = year_agg.months[m] %}
+          <tr class="{% if m == month %}current-month{% endif %}">
+            <td class="mcell">
+              <a href="#" hx-get="/living/month?year={{ year }}&month={{ m }}"
+                 hx-target="#month-panel" hx-swap="outerHTML">{{ m }}月</a>
+            </td>
+            <td>{{ "{:,}".format(ma.income) }}</td>
+            <td>{{ "{:,}".format(ma.payment) }}</td>
+            <td class="{{ 'neg' if ma.surplus < 0 else 'pos' }}">{{ "{:,}".format(ma.surplus) }}</td>
+            <td class="muted">{% if plan %}{{ "{:,}".format(plan.monthly_reserve) }}{% else %}-{% endif %}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="total">
+          <th>年計</th>
+          <td>{{ "{:,}".format(year_agg.total.income) }}</td>
+          <td>{{ "{:,}".format(year_agg.total.payment) }}</td>
+          <td class="{{ 'neg' if year_agg.total.surplus < 0 else 'pos' }}">{{ "{:,}".format(year_agg.total.surplus) }}</td>
+          <td class="muted">{% if plan %}{{ "{:,}".format(plan.annual_total) }}{% else %}-{% endif %}</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <h4>銀行別 年間内訳（支払）</h4>
+  <div class="table-scroll">
+    <table class="summary-table small">
+      <thead>
+        <tr>{% for b in banks %}<th>{{ b.name }}</th>{% endfor %}</tr>
+      </thead>
+      <tbody>
+        <tr>
+          {% for b in banks %}
+            <td>{{ "{:,}".format(year_agg.total.by_bank_outflow.get(b.id, 0)) }}</td>
+          {% endfor %}
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

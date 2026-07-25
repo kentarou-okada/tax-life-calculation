@@ -1,0 +1,16 @@
+{# 当月の集計（#month-summary の中身） #}
+<div class="month-totals">
+  <div class="stat"><span class="lbl">総収入</span><span class="val">{{ "{:,}".format(month_agg.income) }} 円</span></div>
+  <div class="stat"><span class="lbl">総支払</span><span class="val">{{ "{:,}".format(month_agg.payment) }} 円</span></div>
+  <div class="stat {{ 'neg' if month_agg.surplus < 0 else 'pos' }}">
+    <span class="lbl">余剰金</span><span class="val">{{ "{:,}".format(month_agg.surplus) }} 円</span>
+  </div>
+  <div class="stat"><span class="lbl">うち積立・税金貯金</span><span class="val">{{ "{:,}".format(month_agg.saving) }} 円</span></div>
+</div>
+
+<div class="bank-breakdown">
+  <span class="muted">銀行別 支払内訳：</span>
+  {% for b in banks %}
+    <span class="chip">{{ b.name }} {{ "{:,}".format(month_agg.by_bank_outflow.get(b.id, 0)) }}</span>
+  {% endfor %}
+</div>

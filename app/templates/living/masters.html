@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}銀行・費目カテゴリの管理 - 家計・税金管理{% endblock %}
+{% block nav_living %}active{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="page-head">
+    <h2>銀行・費目カテゴリの管理</h2>
+    <a class="ghost-link" href="/living">← 生活費収支へ戻る</a>
+  </div>
+  <div id="masters-body">
+    {% include "living/_masters_body.html" %}
+  </div>
+</section>
+{% endblock %}

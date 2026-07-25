@@ -1,0 +1,32 @@
+{# 税金貯金の毎月積立目安（§4 分割式と連動） #}
+<div class="card guide">
+  <h3>税金貯金の目安（{{ year }} 年）</h3>
+  {% if plan %}
+    <p class="guide-lead">
+      毎月の積立目安：<strong>{{ "{:,}".format(plan.monthly_reserve) }} 円</strong>
+      <span class="muted">（年間税額 {{ "{:,}".format(plan.annual_total) }} 円 ÷ 12）</span>
+    </p>
+    <table class="result-table small">
+      <thead>
+        <tr><th>税目</th><th>1回あたり</th><th>分割</th></tr>
+      </thead>
+      <tbody>
+        <tr><th>所得税 ÷ {{ plan.income_tax_split_count }}</th>
+            <td>{{ "{:,}".format(plan.income_tax_per_split) }} 円</td>
+            <td class="muted">年 {{ plan.income_tax_split_count }} 回</td></tr>
+        <tr><th>住民税 ÷ {{ plan.resident_tax_split_count }}</th>
+            <td>{{ "{:,}".format(plan.resident_tax_per_split) }} 円</td>
+            <td class="muted">年 {{ plan.resident_tax_split_count }} 回</td></tr>
+        <tr><th>消費税 ÷ {{ plan.consumption_tax_split_count }}</th>
+            <td>{{ "{:,}".format(plan.consumption_tax_per_split) }} 円</td>
+            <td class="muted">年 {{ plan.consumption_tax_split_count }} 回</td></tr>
+      </tbody>
+    </table>
+    <p class="hint muted">※ 税金画面で {{ year }} 年の入力を保存すると連動します。上段は年額を12分割した毎月の積立目安、下段は §4 の分割式（1回あたり）。</p>
+  {% else %}
+    <p class="muted">
+      {{ year }} 年の税金算出データがありません。
+      <a href="/tax?year={{ year }}">税金画面</a>で入力・保存すると、毎月の税金貯金目安が表示されます。
+    </p>
+  {% endif %}
+</div>

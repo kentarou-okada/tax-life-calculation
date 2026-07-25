@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}生活費収支 - 家計・税金管理{% endblock %}
+{% block nav_living %}active{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="page-head">
+    <h2>生活費収支</h2>
+    <a class="ghost-link" href="/living/masters">銀行・費目カテゴリの管理 →</a>
+  </div>
+  {% include "living/_panel.html" %}
+</section>
+{% endblock %}

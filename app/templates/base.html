@@ -11,8 +11,8 @@
   <header class="app-header">
     <h1>家計・税金管理</h1>
     <nav>
-      <a href="/tax" class="active">税金算出</a>
-      <span class="muted">生活費収支（準備中）</span>
+      <a href="/tax" class="{% block nav_tax %}{% endblock %}">税金算出</a>
+      <a href="/living" class="{% block nav_living %}{% endblock %}">生活費収支</a>
     </nav>
   </header>
   <main>

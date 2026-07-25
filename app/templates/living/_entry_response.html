@@ -1,0 +1,5 @@
+{# エントリ変更時の応答：#month-summary を更新し、年次サマリを OOB で差し替える #}
+{% include "living/_month_summary_inner.html" %}
+<div id="annual-summary" hx-swap-oob="true">
+  {% include "living/_annual_inner.html" %}
+</div>
