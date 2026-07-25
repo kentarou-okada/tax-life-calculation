@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}税金算出 - 家計・税金管理{% endblock %}
+{% block content %}
+<section class="page">
+  <h2>税金算出</h2>
+  {% if no_data %}
+    <p class="notice">
+      税年度パラメータが未登録です。先に初期化スクリプトを実行してください：
+      <code>.venv/Scripts/python.exe -m scripts.init_db</code>
+    </p>
+  {% else %}
+    <div id="panel">
+      {% include "tax/_panel.html" %}
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

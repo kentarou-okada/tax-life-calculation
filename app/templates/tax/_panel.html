@@ -1,0 +1,90 @@
+{# 数値入力フィールドのマクロ（使用前に定義する） #}
+{% macro numfield(label, name, value, step='0.01', optional=False) %}
+  <div class="field">
+    <label for="f_{{ name }}">{{ label }}</label>
+    <input type="number" step="{{ step }}" id="f_{{ name }}" name="{{ name }}"
+           value="{% if value is not none %}{{ value }}{% endif %}" inputmode="decimal">
+    <span class="unit">万円</span>
+  </div>
+{% endmacro %}
+
+{# 年度切替のたびに #panel ごと差し替える（outerHTML） #}
+<div id="panel">
+  <div class="year-bar">
+    <label for="year-select"><strong>税年度</strong></label>
+    <select id="year-select" name="year"
+            hx-get="/tax/panel" hx-target="#panel" hx-swap="outerHTML" hx-include="this">
+      {% for y in years %}
+        <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }} 年</option>
+      {% endfor %}
+    </select>
+    <span class="muted">単位＝万円</span>
+  </div>
+
+  <div class="layout">
+    {# ============ 入力フォーム ============ #}
+    <form id="tax-form" class="card"
+          hx-post="/tax/calculate" hx-target="#result" hx-swap="innerHTML"
+          hx-trigger="input changed delay:400ms, change delay:100ms">
+      <input type="hidden" name="year" value="{{ year }}">
+
+      <fieldset>
+        <legend>収入・経費</legend>
+        {{ numfield('事業所得', 'business_income', fv.business_income) }}
+        {{ numfield('給与所得', 'salary_income', fv.salary_income) }}
+        {{ numfield('経費', 'expenses', fv.expenses) }}
+      </fieldset>
+
+      <fieldset>
+        <legend>所得控除</legend>
+        {{ numfield('基礎控除', 'basic_deduction', fv.basic_deduction) }}
+        {{ numfield('青色申告控除', 'blue_return_deduction', fv.blue_return_deduction) }}
+        {{ numfield('配偶者特別控除', 'spouse_special_deduction', fv.spouse_special_deduction) }}
+        {{ numfield('生命保険料控除', 'life_insurance_deduction', fv.life_insurance_deduction) }}
+        {{ numfield('社会保険控除', 'social_insurance_deduction', fv.social_insurance_deduction) }}
+        {{ numfield('小規模企業共済等掛金控除', 'small_biz_mutual_aid_deduction', fv.small_biz_mutual_aid_deduction) }}
+        {{ numfield('その他所得控除', 'other_income_deduction', fv.other_income_deduction) }}
+        {{ numfield('地震保険料控除', 'earthquake_insurance_deduction', fv.earthquake_insurance_deduction) }}
+        {{ numfield('寄付金（ふるさと納税）', 'donation', fv.donation) }}
+      </fieldset>
+
+      <fieldset>
+        <legend>所得税率</legend>
+        <div class="radio-row">
+          <label>
+            <input type="radio" name="income_tax_rate_mode" value="auto"
+                   {% if fv.income_tax_rate_mode == 'auto' %}checked{% endif %}>
+            標準累進表から自動判定
+          </label>
+          <label>
+            <input type="radio" name="income_tax_rate_mode" value="manual"
+                   {% if fv.income_tax_rate_mode == 'manual' %}checked{% endif %}>
+            手動上書き
+          </label>
+        </div>
+        {{ numfield('上書き税率（例 0.20）', 'income_tax_rate_override', fv.income_tax_rate_override, step='0.001', optional=True) }}
+        {{ numfield('上書き控除額', 'income_tax_deduction_override', fv.income_tax_deduction_override, optional=True) }}
+        <p class="hint muted">※上書き値は「手動上書き」選択時のみ使用。自動判定時は課税所得から区分を判定します。</p>
+      </fieldset>
+
+      <fieldset>
+        <legend>消費税の算定方式（§5-2）</legend>
+        <select name="consumption_tax_method">
+          {% for value, label in consumption_methods %}
+            <option value="{{ value }}" {% if value == fv.consumption_tax_method %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </fieldset>
+
+      <div class="actions">
+        <button type="button" class="primary"
+                hx-post="/tax/save" hx-target="#result" hx-swap="innerHTML">この年度の入力を保存</button>
+      </div>
+    </form>
+
+    {# ============ 結果表示 ============ #}
+    <div id="result" class="card result">
+      {% include "tax/_result.html" %}
+    </div>
+  </div>
+</div>

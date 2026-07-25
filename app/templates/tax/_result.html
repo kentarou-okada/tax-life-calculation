@@ -1,0 +1,45 @@
+{% macro yen(v) %}{{ '%.2f'|format(v) }}{% endmacro %}
+
+{% if saved %}
+  <p class="saved-note">✔ {{ year }} 年の入力を保存しました。</p>
+{% endif %}
+
+{% if error %}
+  <div class="error-box">
+    <strong>計算できませんでした：</strong> {{ error }}
+  </div>
+{% elif result %}
+  <h3>算出結果（{{ year }} 年・万円）</h3>
+  <table class="result-table">
+    <tbody>
+      <tr><th>所得金額</th><td>{{ yen(result.income) }}</td></tr>
+      <tr><th>課税所得金額</th><td>{{ yen(result.taxable_income) }}</td></tr>
+      <tr class="sub">
+        <th>適用税率 / 控除額</th>
+        <td>{{ '%.1f'|format(result.income_tax_rate * 100) }}% / {{ yen(result.income_tax_deduction) }}
+          <span class="muted">（{{ '手動上書き' if fv.income_tax_rate_mode == 'manual' else '自動判定' }}）</span>
+        </td>
+      </tr>
+      <tr><th>所得税額</th><td>{{ yen(result.income_tax) }}</td></tr>
+      <tr><th>復興特別所得税</th><td>{{ yen(result.reconstruction_tax) }}</td></tr>
+      <tr><th>住民税</th><td>{{ yen(result.resident_tax) }}</td></tr>
+      <tr><th>市県民税（均等割）</th><td>{{ yen(result.flat_rate_tax) }}</td></tr>
+      <tr><th>消費税</th><td>{{ yen(result.consumption_tax) }}</td></tr>
+      <tr class="total"><th>税金合計</th><td>{{ yen(result.total_tax) }}</td></tr>
+      <tr><th>ふるさと納税上限額</th><td>{{ yen(result.furusato_limit) }}</td></tr>
+      <tr class="total"><th>手取り合計</th><td>{{ yen(result.net_income) }}</td></tr>
+      <tr><th>各種支払後残金</th><td>{{ yen(result.remaining) }}</td></tr>
+    </tbody>
+  </table>
+
+  <h4>税額の毎月分割（税金貯金の目安）</h4>
+  <table class="result-table small">
+    <tbody>
+      <tr><th>所得税 ÷ 分割</th><td>{{ yen(result.income_tax_monthly) }}</td></tr>
+      <tr><th>住民税 ÷ 分割</th><td>{{ yen(result.resident_tax_monthly) }}</td></tr>
+      <tr><th>消費税 ÷ 分割</th><td>{{ yen(result.consumption_tax_monthly) }}</td></tr>
+    </tbody>
+  </table>
+{% else %}
+  <p class="muted">入力すると結果が表示されます。</p>
+{% endif %}

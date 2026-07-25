@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}家計・税金管理{% endblock %}</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="/static/vendor/htmx.min.js" defer></script>
+</head>
+<body>
+  <header class="app-header">
+    <h1>家計・税金管理</h1>
+    <nav>
+      <a href="/tax" class="active">税金算出</a>
+      <span class="muted">生活費収支（準備中）</span>
+    </nav>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="app-footer muted">
+    ローカル試算ツール（単位＝万円）。確定申告本体はマネーフォワードで行う。
+  </footer>
+</body>
+</html>
