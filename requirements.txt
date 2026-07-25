@@ -1,0 +1,12 @@
+# 家計・税金管理アプリ 依存パッケージ
+# バックエンド / DB
+SQLAlchemy>=2.0.36
+# Web（後続ステップで使用）
+fastapi>=0.115
+uvicorn[standard]>=0.32
+jinja2>=3.1
+python-multipart>=0.0.9
+# Excel 取り込み / エクスポート
+openpyxl>=3.1
+# テスト
+pytest>=8.3
