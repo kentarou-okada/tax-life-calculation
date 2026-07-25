@@ -83,14 +83,15 @@ class TaxResult:
     """税額算出結果（万円）。丸めは行わない。"""
 
     income: float                    # 所得金額
-    taxable_income: float            # 課税所得金額
+    taxable_income_before_furusato: float  # 課税所得金額（寄付金控除を引く前。§4 の 747.7 に相当）
+    furusato_deduction: float        # 課税所得から差し引いた寄付金控除額（＝寄付金−自己負担2000円）
+    taxable_income: float            # 課税所得金額（寄付金控除後）
     income_tax_rate: float           # 適用税率（判定結果）
     income_tax_deduction: float      # 適用控除額
     income_tax_before_credits: float  # 所得税額（税額控除前 = 課税所得×税率−控除額）
     housing_loan_credit: float       # 住宅ローン控除（所得税から差引いた額）
-    furusato_income_tax_credit: float  # ふるさと納税の所得税分控除
-    furusato_resident_credit: float  # ふるさと納税の住民税分控除
-    income_tax: float                # 所得税額（住宅ローン・ふるさと控除後）
+    furusato_resident_credit: float  # ふるさと納税の住民税分（特例分）控除
+    income_tax: float                # 所得税額（住宅ローン控除後）
     reconstruction_tax: float        # 復興特別所得税
     resident_tax: float              # 住民税（ふるさと控除後）
     flat_rate_tax: float             # 市県民税(均等割)
@@ -164,7 +165,7 @@ def calculate_tax(params: TaxParams, inputs: TaxInputs) -> TaxResult:
         - params.blue_return_deduction
     )
 
-    # 課税所得（青色は差し引かない＝所得金額で控除済み。寄付金も差し引かない）
+    # 課税所得（青色は差し引かない＝所得金額で控除済み）
     deductions = (
         params.basic_deduction
         + inputs.spouse_special_deduction
@@ -174,29 +175,30 @@ def calculate_tax(params: TaxParams, inputs: TaxInputs) -> TaxResult:
         + inputs.other_income_deduction
         + inputs.earthquake_insurance_deduction
     )
-    taxable_income = income - deductions
+    taxable_income_before_furusato = income - deductions
+
+    # ふるさと納税（寄付金）は自己負担2000円を超えた額を寄付金控除として課税所得から差し引く。
+    # 所得税の軽減はこの課税所得の減少で反映される（二重計上を避けるため別途の所得税税額控除は行わない）。
+    furusato_deduction = max(0.0, inputs.donation - FURUSATO_SELF_PAY_MANYEN)
+    taxable_income = taxable_income_before_furusato - furusato_deduction
 
     # 所得税額（控除前。税率・控除額は auto/manual で解決）。負値はガードして 0 に丸める。
     rate, rate_deduction = resolve_income_tax_rate(params, taxable_income)
     income_tax_before_credits = max(0.0, taxable_income * rate - rate_deduction)
 
-    # ふるさと納税の税額控除：自己負担2000円を超えた額を、所得税分（×税率）と
-    # 住民税分（×(1−税率)＝基本分10%＋特例分(90%−税率)）に配分し、それぞれから差し引く。
-    furusato_base = max(0.0, inputs.donation - FURUSATO_SELF_PAY_MANYEN)
-    furusato_income_tax_credit = furusato_base * rate
-    furusato_resident_credit = furusato_base * (1.0 - rate)
-
     # 住宅ローン控除（税額控除）。所得税額から直接差し引く（0 の可能性あり）。
     housing_loan_credit = max(0.0, inputs.housing_loan_deduction)
 
-    # 所得税額（住宅ローン控除・ふるさと納税所得税分を差し引き、0 でガード）
-    income_tax = max(0.0, income_tax_before_credits - housing_loan_credit - furusato_income_tax_credit)
+    # 所得税額（住宅ローン控除を差し引き、0 でガード）
+    income_tax = max(0.0, income_tax_before_credits - housing_loan_credit)
 
     # 復興特別所得税は控除後の所得税額を基準とする（Excel の基準所得税額の考え方）
     reconstruction_tax = income_tax * params.reconstruction_tax_rate
 
-    # 住民税（所得割）→ ふるさと納税住民税分を差し引き、0 でガード
+    # 住民税（所得割）：課税所得は寄付金控除後（基本分10%相当を反映済み）。
+    # さらにふるさと納税の特例分（base×(90%−税率)）を税額控除として差し引く。
     resident_tax_before = max(0.0, taxable_income * params.resident_tax_rate - params.resident_tax_deduction)
+    furusato_resident_credit = max(0.0, furusato_deduction * (0.9 - rate))
     resident_tax = max(0.0, resident_tax_before - furusato_resident_credit)
 
     flat_rate_tax = params.flat_rate_tax
@@ -209,17 +211,19 @@ def calculate_tax(params: TaxParams, inputs: TaxInputs) -> TaxResult:
     # 社会保険料支払後合計 ＝ 上記 − 社会保険控除
     remaining = net_income - inputs.social_insurance_deduction
 
-    # ふるさと納税上限額は住民税所得割（控除前）を基準に算定
-    furusato_limit = _furusato_limit(params, taxable_income, resident_tax_before, rate)
+    # ふるさと納税上限額は寄付金控除前の住民税所得割・課税所得を基準に算定（自身の寄付で縮まないように）
+    resident_levy_for_limit = max(0.0, taxable_income_before_furusato * params.resident_tax_rate - params.resident_tax_deduction)
+    furusato_limit = _furusato_limit(params, taxable_income_before_furusato, resident_levy_for_limit, rate)
 
     return TaxResult(
         income=income,
+        taxable_income_before_furusato=taxable_income_before_furusato,
+        furusato_deduction=furusato_deduction,
         taxable_income=taxable_income,
         income_tax_rate=rate,
         income_tax_deduction=rate_deduction,
         income_tax_before_credits=income_tax_before_credits,
         housing_loan_credit=housing_loan_credit,
-        furusato_income_tax_credit=furusato_income_tax_credit,
         furusato_resident_credit=furusato_resident_credit,
         income_tax=income_tax,
         reconstruction_tax=reconstruction_tax,

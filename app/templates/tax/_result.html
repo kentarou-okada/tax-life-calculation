@@ -13,6 +13,10 @@
   <table class="result-table">
     <tbody>
       <tr><th>所得金額</th><td>{{ yen(result.income) }}</td></tr>
+      {% if result.furusato_deduction %}
+        <tr class="sub"><th>課税所得（寄付金控除前）</th><td>{{ yen(result.taxable_income_before_furusato) }}</td></tr>
+        <tr class="sub"><th>− 寄付金控除（ふるさと納税）</th><td>−{{ yen(result.furusato_deduction) }}</td></tr>
+      {% endif %}
       <tr><th>課税所得金額</th><td>{{ yen(result.taxable_income) }}</td></tr>
       <tr class="sub">
         <th>適用税率 / 控除額</th>
@@ -23,9 +27,6 @@
       <tr class="sub"><th>所得税額（控除前）</th><td>{{ yen(result.income_tax_before_credits) }}</td></tr>
       {% if result.housing_loan_credit %}
         <tr class="sub"><th>− 住宅ローン控除</th><td>−{{ yen(result.housing_loan_credit) }}</td></tr>
-      {% endif %}
-      {% if result.furusato_income_tax_credit %}
-        <tr class="sub"><th>− ふるさと納税（所得税分）</th><td>−{{ yen(result.furusato_income_tax_credit) }}</td></tr>
       {% endif %}
       <tr><th>所得税額</th><td>{{ yen(result.income_tax) }}</td></tr>
       <tr><th>復興特別所得税</th><td>{{ yen(result.reconstruction_tax) }}</td></tr>
