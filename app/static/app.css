@@ -163,3 +163,9 @@ code { background: #eef2ff; padding: 0.1rem 0.35rem; border-radius: 4px; font-si
 .add-row.wrap { flex-wrap: wrap; }
 .add-row input[type="text"], .add-row select { padding: 0.35rem 0.45rem; }
 button.ghost.tiny { padding: 0.15rem 0.45rem; font-size: 0.75rem; }
+
+.data-bar { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.9rem; font-size: 0.85rem; }
+.data-bar .sep { color: var(--line); }
+.backup-msg { font-size: 0.82rem; }
+.backup-msg.ok { color: var(--ok); }
+.backup-msg.err { color: var(--err); }

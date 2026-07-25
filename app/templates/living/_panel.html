@@ -8,6 +8,16 @@
     <span class="muted">単位＝円（10円単位）</span>
   </div>
 
+  <div class="data-bar">
+    <span class="muted">エクスポート：</span>
+    <a class="ghost-link" href="/export/living.csv?year={{ year }}">月次収支 CSV</a>
+    <a class="ghost-link" href="/export/living.xlsx?year={{ year }}">月次収支 Excel</a>
+    <span class="sep">|</span>
+    <button type="button" class="ghost tiny"
+            hx-post="/export/backup" hx-target="#backup-msg" hx-swap="innerHTML">DB バックアップ</button>
+    <span id="backup-msg"></span>
+  </div>
+
   {% include "living/_tax_guide.html" %}
 
   <div id="annual-summary">

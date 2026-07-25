@@ -28,6 +28,15 @@
     <span class="muted">単位＝万円</span>
   </div>
 
+  <div class="data-bar">
+    <span class="muted">エクスポート：</span>
+    <a class="ghost-link" href="/export/tax.csv?year={{ year }}">この年 CSV</a>
+    <a class="ghost-link" href="/export/tax.xlsx?year={{ year }}">この年 Excel</a>
+    <span class="sep">|</span>
+    <a class="ghost-link" href="/export/tax.csv">全年度 CSV</a>
+    <a class="ghost-link" href="/export/tax.xlsx">全年度 Excel</a>
+  </div>
+
   {% if notice %}
     <p class="notice-inline">{{ notice }}</p>
   {% endif %}

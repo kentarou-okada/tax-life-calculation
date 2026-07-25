@@ -12,6 +12,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import BASE_DIR
+from app.routers import export as export_router
 from app.routers import living as living_router
 from app.routers import tax as tax_router
 
@@ -25,6 +26,7 @@ app.mount(
 
 app.include_router(tax_router.router)
 app.include_router(living_router.router)
+app.include_router(export_router.router)
 
 
 @app.get("/")

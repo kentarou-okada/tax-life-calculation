@@ -23,9 +23,9 @@ from sqlalchemy.orm import Session
 
 from app.config import BASE_DIR
 from app.core.living import EntryRow, aggregate_month, aggregate_year, round10, tax_saving_plan
-from app.core.tax import Bracket, TaxInputs, TaxParams, calculate_tax
 from app.db import SessionLocal
-from app.models import Bank, Category, MonthlyEntry, TaxBracket, TaxYearInput, TaxYearParam
+from app.models import Bank, Category, MonthlyEntry
+from app.services.tax_service import result_for_year
 
 router = APIRouter(prefix="/living", tags=["living"])
 templates = Jinja2Templates(directory=str(Path(BASE_DIR) / "app" / "templates"))
@@ -115,50 +115,10 @@ def _month_entry_map(db: Session, year: int, month: int) -> dict[str, int]:
 # 税金貯金目安（§4 分割式と連動）
 # --------------------------------------------------------------------------- #
 def _tax_saving_plan(db: Session, year: int):
-    param = db.get(TaxYearParam, year)
-    ti = db.get(TaxYearInput, year)
-    if param is None or ti is None:
+    computed = result_for_year(db, year)
+    if computed is None:
         return None
-    brackets = tuple(
-        Bracket(lower=r.lower_bound_manyen, upper=r.upper_bound_manyen, rate=r.rate, deduction=r.deduction_manyen)
-        for r in db.scalars(
-            select(TaxBracket).where(TaxBracket.year == year).order_by(TaxBracket.lower_bound_manyen)
-        )
-    )
-    params = TaxParams(
-        basic_deduction=param.basic_deduction_manyen,
-        blue_return_deduction=param.blue_return_deduction_manyen,
-        flat_rate_tax=param.flat_rate_tax_manyen,
-        reconstruction_tax_rate=param.reconstruction_tax_rate,
-        resident_tax_rate=param.resident_tax_rate,
-        resident_tax_deduction=param.resident_tax_deduction_manyen,
-        income_tax_rate_mode=param.income_tax_rate_mode,
-        income_tax_rate_override=param.income_tax_rate_override,
-        income_tax_deduction_override=param.income_tax_deduction_override,
-        brackets=brackets,
-        consumption_tax_method=param.consumption_tax_method,
-        consumption_tax_rate=param.consumption_tax_rate,
-        furusato_method=param.furusato_method,
-        income_tax_split_count=param.income_tax_split_count,
-        resident_tax_split_count=param.resident_tax_split_count,
-        consumption_tax_split_count=param.consumption_tax_split_count,
-    )
-    inputs = TaxInputs(
-        business_income=ti.business_income_manyen,
-        salary_income=ti.salary_income_manyen,
-        expenses=ti.expenses_manyen,
-        spouse_special_deduction=ti.spouse_special_deduction_manyen,
-        life_insurance_deduction=ti.life_insurance_deduction_manyen,
-        social_insurance_deduction=ti.social_insurance_deduction_manyen,
-        small_biz_mutual_aid_deduction=ti.small_biz_mutual_aid_deduction_manyen,
-        other_income_deduction=ti.other_income_deduction_manyen,
-        earthquake_insurance_deduction=ti.earthquake_insurance_deduction_manyen,
-        donation=ti.donation_manyen,
-    )
-    try:
-        r = calculate_tax(params, inputs)
-    except (ValueError, NotImplementedError):
-        return None
+    r, params = computed
     return tax_saving_plan(
         income_tax_manyen=r.income_tax,
         resident_tax_manyen=r.resident_tax,
