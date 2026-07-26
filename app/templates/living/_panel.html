@@ -16,12 +16,8 @@
     <button type="button" class="ghost tiny"
             hx-post="/export/backup" hx-target="#backup-msg" hx-swap="innerHTML">DB バックアップ</button>
     <span id="backup-msg"></span>
-  </div>
-
-  {% include "living/_tax_guide.html" %}
-
-  <div id="annual-summary">
-    {% include "living/_annual_inner.html" %}
+    <span class="sep">|</span>
+    <a class="ghost-link" href="/summary?year={{ year }}">年間サマリを見る →</a>
   </div>
 
   {% include "living/_month_panel.html" %}

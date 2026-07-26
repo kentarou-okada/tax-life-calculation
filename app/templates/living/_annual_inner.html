@@ -11,10 +11,9 @@
       <tbody>
         {% for m in range(1, 13) %}
           {% set ma = year_agg.months[m] %}
-          <tr class="{% if m == month %}current-month{% endif %}">
+          <tr>
             <td class="mcell">
-              <a href="#" hx-get="/living/month?year={{ year }}&month={{ m }}"
-                 hx-target="#month-panel" hx-swap="outerHTML">{{ m }}月</a>
+              <a href="/living?year={{ year }}&month={{ m }}" title="{{ m }}月の入力へ">{{ m }}月</a>
             </td>
             <td>{{ "{:,}".format(ma.income) }}</td>
             <td>{{ "{:,}".format(ma.payment) }}</td>

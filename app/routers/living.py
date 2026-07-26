@@ -206,9 +206,21 @@ def _category_annual_rows(db: Session, year: int) -> list[dict]:
     return rows
 
 
+def summary_context(request: Request, db: Session, year: int) -> dict:
+    """サマリ画面（年サマリ・銀行別年間内訳・費目別年間集計・税金貯金の目安）用のコンテキスト。"""
+    return {
+        "request": request,
+        "year": year,
+        "banks": _active_banks(db),
+        "year_agg": aggregate_year(_entry_rows(db, year)),
+        "category_annual": _category_annual_rows(db, year),
+        "plan": _tax_saving_plan(db, year),
+    }
+
+
 def _panel_context(request: Request, db: Session, year: int, month: int) -> dict:
+    """生活費（入力）画面の月パネル用コンテキスト。年間サマリは別タブ「サマリ」に移動。"""
     banks = _active_banks(db)
-    year_agg = aggregate_year(_entry_rows(db, year))
     month_agg = aggregate_month(_entry_rows(db, year, month))
     entry_map = _month_entry_map(db, year, month)
     entry_cat_ids = {int(k.split(":")[1]) for k in entry_map}
@@ -221,10 +233,7 @@ def _panel_context(request: Request, db: Session, year: int, month: int) -> dict
         "bank_names": _bank_name_map(db),
         "grid_rows": _grid_rows(db, entry_cat_ids),
         "entry_map": entry_map,
-        "year_agg": year_agg,
         "month_agg": month_agg,
-        "category_annual": _category_annual_rows(db, year),
-        "plan": _tax_saving_plan(db, year),
     }
 
 

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}サマリ - 家計・税金管理{% endblock %}
+{% block nav_summary %}active{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="page-head">
+    <h2>サマリ</h2>
+    <a class="ghost-link" href="/living?year={{ year }}">生活費の入力へ →</a>
+  </div>
+  {% include "summary/_panel.html" %}
+</section>
+{% endblock %}

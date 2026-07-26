@@ -1,0 +1,18 @@
+{# サマリのパネル：年切替のたびに #summary-panel ごと差し替える #}
+<div id="summary-panel">
+  <div class="year-bar">
+    <label for="summary-year"><strong>年</strong></label>
+    <input id="summary-year" type="number" name="year" value="{{ year }}" min="2000" max="2100" step="1"
+           hx-get="/summary/panel" hx-target="#summary-panel" hx-swap="outerHTML"
+           hx-trigger="change" hx-include="this">
+    <span class="muted">単位＝円（10円単位）</span>
+    <span class="data-bar">
+      <span class="muted">エクスポート：</span>
+      <a class="ghost-link" href="/export/living.csv?year={{ year }}">月次収支 CSV</a>
+      <a class="ghost-link" href="/export/living.xlsx?year={{ year }}">月次収支 Excel</a>
+    </span>
+  </div>
+
+  {% include "living/_tax_guide.html" %}
+  {% include "living/_annual_inner.html" %}
+</div>

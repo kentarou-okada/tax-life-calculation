@@ -14,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from app.config import BASE_DIR
 from app.routers import export as export_router
 from app.routers import living as living_router
+from app.routers import summary as summary_router
 from app.routers import tax as tax_router
 
 app = FastAPI(title="家計・税金管理")
@@ -26,6 +27,7 @@ app.mount(
 
 app.include_router(tax_router.router)
 app.include_router(living_router.router)
+app.include_router(summary_router.router)
 app.include_router(export_router.router)
 
 
