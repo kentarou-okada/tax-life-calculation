@@ -22,7 +22,14 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import BASE_DIR
-from app.core.living import EntryRow, aggregate_month, aggregate_year, round10, tax_saving_plan
+from app.core.living import (
+    EntryRow,
+    aggregate_by_category,
+    aggregate_month,
+    aggregate_year,
+    round10,
+    tax_saving_plan,
+)
 from app.db import SessionLocal
 from app.models import Bank, Category, MonthlyEntry
 from app.services.tax_service import result_for_year
@@ -163,6 +170,29 @@ def _bank_name_map(db: Session) -> dict[int, str]:
     return {b.id: b.name for b in _all_banks(db)}
 
 
+def _category_annual_rows(db: Session, year: int) -> list[dict]:
+    """費目別の年間集計。子を持つ費目はヘッダ（小計）＋子行、葉費目はそのまま。"""
+    totals = aggregate_by_category(_entry_rows(db, year))
+    cats = [c for c in _all_categories(db) if c.is_active == 1]
+    children_of: dict[Optional[int], list[Category]] = {}
+    for c in cats:
+        children_of.setdefault(c.parent_id, []).append(c)
+
+    kind_order = {"income": 0, "expense": 1, "saving": 2}
+    rows: list[dict] = []
+    tops = sorted(children_of.get(None, []), key=lambda c: (kind_order.get(c.kind, 9), c.display_order, c.id))
+    for top in tops:
+        kids = sorted(children_of.get(top.id, []), key=lambda c: (c.display_order, c.id))
+        if kids:
+            subtotal = totals.get(top.id, 0) + sum(totals.get(k.id, 0) for k in kids)
+            rows.append({"type": "header", "name": top.name, "kind": top.kind, "total": subtotal})
+            for k in kids:
+                rows.append({"type": "leaf", "name": k.name, "kind": k.kind, "total": totals.get(k.id, 0), "child": True})
+        else:
+            rows.append({"type": "leaf", "name": top.name, "kind": top.kind, "total": totals.get(top.id, 0), "child": False})
+    return rows
+
+
 def _panel_context(request: Request, db: Session, year: int, month: int) -> dict:
     banks = _active_banks(db)
     year_agg = aggregate_year(_entry_rows(db, year))
@@ -178,6 +208,7 @@ def _panel_context(request: Request, db: Session, year: int, month: int) -> dict
         "entry_map": _month_entry_map(db, year, month),
         "year_agg": year_agg,
         "month_agg": month_agg,
+        "category_annual": _category_annual_rows(db, year),
         "plan": _tax_saving_plan(db, year),
     }
 

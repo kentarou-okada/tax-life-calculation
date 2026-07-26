@@ -86,6 +86,14 @@ class YearAggregate:
     total: MonthAggregate = field(default_factory=MonthAggregate)
 
 
+def aggregate_by_category(rows: Iterable[EntryRow]) -> dict[int, int]:
+    """費目（category_id）ごとの合計（円）。年間の費目別集計に使う。"""
+    totals: dict[int, int] = {}
+    for r in rows:
+        totals[r.category_id] = totals.get(r.category_id, 0) + r.amount_yen
+    return totals
+
+
 def aggregate_year(rows: Iterable[EntryRow]) -> YearAggregate:
     """1 年分（複数月）のエントリを月別・年計で集計する。"""
     ya = YearAggregate()

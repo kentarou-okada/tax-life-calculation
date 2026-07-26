@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from app.core.living import (
     EntryRow,
+    aggregate_by_category,
     aggregate_month,
     aggregate_year,
     manyen_to_yen10,
@@ -54,6 +55,16 @@ def test_aggregate_year_rolls_up_months():
     assert ya.total.saving_tax == 260000             # 130000 * 2
     assert ya.total.saving_reserve == 40000          # 20000 * 2
     assert ya.total.by_bank_outflow[1] == 324680     # 162340 * 2
+
+
+def test_aggregate_by_category_annual():
+    """費目別 年間集計は月・銀行をまたいで category_id ごとに合算する。"""
+    rows = _rows_one_month(3) + _rows_one_month(4)
+    totals = aggregate_by_category(rows)
+    assert totals[1] == 1700000    # 給与 850000 × 2か月
+    assert totals[3] == 136000     # 食費 68000 × 2
+    assert totals[19] == 260000    # 所得税(税金貯金) 130000 × 2
+    assert totals[5] == 24680      # 電気 12340 × 2
 
 
 def test_round10_and_manyen():
