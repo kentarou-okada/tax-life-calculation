@@ -438,6 +438,27 @@ def delete_category(request: Request, category_id: int, db: Session = Depends(ge
     return _masters_response(request, db, f"費目「{name}」を削除しました。")
 
 
+@router.post("/categories/sort", response_class=HTMLResponse)
+def sort_categories(request: Request, db: Session = Depends(get_db)):
+    """費目の表示順を「種別→親→その子」の順に整列（display_order を振り直す）。"""
+    cats = _all_categories(db)
+    children_of: dict[Optional[int], list[Category]] = {}
+    for c in cats:
+        children_of.setdefault(c.parent_id, []).append(c)
+
+    kind_order = {"income": 0, "expense": 1, "saving": 2}
+    tops = sorted(children_of.get(None, []), key=lambda c: (kind_order.get(c.kind, 9), c.display_order, c.id))
+    order = 0
+    for top in tops:
+        top.display_order = order
+        order += 1
+        for k in sorted(children_of.get(top.id, []), key=lambda c: (c.display_order, c.id)):
+            k.display_order = order
+            order += 1
+    db.commit()
+    return _masters_response(request, db, "費目を「親のすぐ下に子」が並ぶ順に整列しました。")
+
+
 @router.post("/category/{category_id}/reparent", response_class=HTMLResponse)
 def reparent_category(
     request: Request, category_id: int, parent_id: Optional[int] = Form(None), db: Session = Depends(get_db)

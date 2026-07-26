@@ -35,7 +35,12 @@
 
     {# ---------- 費目カテゴリ ---------- #}
     <div class="card">
-      <h3>費目カテゴリ</h3>
+      <div class="card-head">
+        <h3>費目カテゴリ</h3>
+        <button type="button" class="ghost tiny"
+                hx-post="/living/categories/sort" hx-target="#masters-body" hx-swap="outerHTML"
+                title="親のすぐ下に子が並ぶ順に整列します">整列</button>
+      </div>
       <table class="master-table">
         <tbody>
           {% for c in categories %}

@@ -169,6 +169,8 @@ code { background: #eef2ff; padding: 0.1rem 0.35rem; border-radius: 4px; font-si
 .bank-breakdown { font-size: 0.85rem; }
 .bank-breakdown .chip { display: inline-block; background: #eef2ff; border-radius: 12px; padding: 0.1rem 0.6rem; margin: 0.15rem 0.25rem 0 0; }
 
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.card-head h3 { margin: 0; }
 .master-table td { padding: 0.3rem 0.4rem; border-bottom: 1px solid var(--line); }
 .master-table td.right { text-align: right; }
 .master-table tr.inactive { opacity: 0.5; }
