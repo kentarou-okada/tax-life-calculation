@@ -127,11 +127,20 @@ code { background: #eef2ff; padding: 0.1rem 0.35rem; border-radius: 4px; font-si
 .summary-table .pos { color: var(--ok); }
 .summary-table .neg { color: var(--err); }
 .summary-table.small td, .summary-table.small th { font-size: 0.85rem; }
-.cat-annual th { text-align: left; font-weight: 500; }
-.cat-annual .parent-col { white-space: nowrap; }
-.cat-annual .child-col { color: var(--muted); }
-.cat-annual tr.grp th, .cat-annual tr.grp td { font-weight: 700; background: #f1f5f9; }
-.cat-annual tr.grp .child-col { color: inherit; }
+/* 内容幅に合わせて縮め、列間の余白（セルのpadding）で均等に離す */
+.summary-table.cat-annual { width: auto; max-width: 32rem; }
+.summary-table.cat-annual th,
+.summary-table.cat-annual td { white-space: nowrap; padding: 0.3rem 0.9rem; }
+.summary-table.cat-annual .parent-col,
+.summary-table.cat-annual .child-col,
+.summary-table.cat-annual thead th:nth-child(1),
+.summary-table.cat-annual thead th:nth-child(2) { text-align: left; font-weight: 500; }
+.summary-table.cat-annual td,
+.summary-table.cat-annual thead th:nth-child(3) { text-align: right; }
+.summary-table.cat-annual .child-col { color: var(--muted); }
+.summary-table.cat-annual tr.grp th,
+.summary-table.cat-annual tr.grp td { font-weight: 700; background: #f1f5f9; }
+.summary-table.cat-annual tr.grp .child-col { color: inherit; }
 
 .month-tabs { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.75rem; }
 .month-tabs .tab { border: 1px solid var(--line); background: #fff; padding: 0.3rem 0.6rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
