@@ -86,8 +86,13 @@ def _saving_group_map(db: Session) -> dict[int, str]:
     return result
 
 
-def _grid_rows(db: Session) -> list[dict]:
-    """入力グリッドの行構造。子を持つカテゴリはヘッダ、葉カテゴリは入力行。"""
+def _grid_rows(db: Session, entry_cat_ids: Optional[set[int]] = None) -> list[dict]:
+    """入力グリッドの行構造。子を持つカテゴリは見出し、葉カテゴリは入力行。
+
+    ただし親カテゴリ自身に当月の直接入力が残っている場合（entry_cat_ids に含まれる）は、
+    その親も編集可能な入力行として出す（子を追加した後に残った直接入力を訂正できるように）。
+    """
+    entry_cat_ids = entry_cat_ids or set()
     cats = [c for c in _all_categories(db) if c.is_active == 1]
     children_of: dict[Optional[int], list[Category]] = {}
     for c in cats:
@@ -99,7 +104,11 @@ def _grid_rows(db: Session) -> list[dict]:
     for top in tops:
         kids = children_of.get(top.id, [])
         if kids:
-            rows.append({"type": "header", "category": top})
+            if top.id in entry_cat_ids:
+                # 親に直接入力が残っている → 編集用の入力行として表示
+                rows.append({"type": "input", "category": top, "is_parent": True})
+            else:
+                rows.append({"type": "header", "category": top})
             for k in sorted(kids, key=lambda c: (c.display_order, c.id)):
                 rows.append({"type": "input", "category": k})
         else:
@@ -201,6 +210,8 @@ def _panel_context(request: Request, db: Session, year: int, month: int) -> dict
     banks = _active_banks(db)
     year_agg = aggregate_year(_entry_rows(db, year))
     month_agg = aggregate_month(_entry_rows(db, year, month))
+    entry_map = _month_entry_map(db, year, month)
+    entry_cat_ids = {int(k.split(":")[1]) for k in entry_map}
     return {
         "request": request,
         "year": year,
@@ -208,8 +219,8 @@ def _panel_context(request: Request, db: Session, year: int, month: int) -> dict
         "months": list(range(1, 13)),
         "banks": banks,
         "bank_names": _bank_name_map(db),
-        "grid_rows": _grid_rows(db),
-        "entry_map": _month_entry_map(db, year, month),
+        "grid_rows": _grid_rows(db, entry_cat_ids),
+        "entry_map": entry_map,
         "year_agg": year_agg,
         "month_agg": month_agg,
         "category_annual": _category_annual_rows(db, year),

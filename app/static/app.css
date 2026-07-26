@@ -151,6 +151,8 @@ code { background: #eef2ff; padding: 0.1rem 0.35rem; border-radius: 4px; font-si
 .grid-table .cat-col { text-align: left; white-space: nowrap; position: sticky; left: 0; background: #fff; }
 .grid-table .cat-col.child { padding-left: 1.2rem; }
 .grid-table tr.grp .cat-col { background: #f1f5f9; font-weight: 700; }
+.grid-table tr.parent-input .cat-col { background: #fff7ed; font-weight: 700; }
+.parent-note { font-size: 0.72rem; }
 .grid-table input.amt { width: 6rem; text-align: right; padding: 0.2rem 0.3rem; border: 1px solid transparent; background: transparent; }
 .grid-table input.amt:hover, .grid-table input.amt:focus { border-color: var(--line); background: #fff; }
 .kind-tag { display: inline-block; font-size: 0.68rem; padding: 0 0.25rem; border-radius: 3px; margin-left: 0.3rem; color: #fff; }

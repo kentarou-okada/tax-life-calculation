@@ -34,10 +34,11 @@
             <tr class="grp"><th class="cat-col" colspan="{{ banks|length + 1 }}">{{ row.category.name }}</th></tr>
           {% else %}
             {% set cat = row.category %}
-            <tr>
+            <tr class="{{ 'parent-input' if row.is_parent }}">
               <th class="cat-col {{ 'child' if cat.parent_id }}">
                 {{ cat.name }}
                 <span class="kind-tag {{ cat.kind }}">{{ {'income':'収','expense':'支','saving':'貯'}[cat.kind] }}</span>
+                {% if row.is_parent %}<span class="muted parent-note">（親・直接入力の修正）</span>{% endif %}
               </th>
               {% for b in banks %}
                 <td>
