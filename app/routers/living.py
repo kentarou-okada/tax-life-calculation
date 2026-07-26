@@ -171,7 +171,11 @@ def _bank_name_map(db: Session) -> dict[int, str]:
 
 
 def _category_annual_rows(db: Session, year: int) -> list[dict]:
-    """費目別の年間集計。子を持つ費目はヘッダ（小計）＋子行、葉費目はそのまま。"""
+    """費目別の年間集計。費目(親)・費目(子)・年間合計の3カラム用の行を返す。
+
+    - 子を持つ親: parent=親名 / child='' / total=小計（親自身＋子の合計） の見出し行 → 各子行 parent='' / child=子名。
+    - 子を持たない最上位費目: parent=費目名 / child='' の 1 行。
+    """
     totals = aggregate_by_category(_entry_rows(db, year))
     cats = [c for c in _all_categories(db) if c.is_active == 1]
     children_of: dict[Optional[int], list[Category]] = {}
@@ -185,11 +189,11 @@ def _category_annual_rows(db: Session, year: int) -> list[dict]:
         kids = sorted(children_of.get(top.id, []), key=lambda c: (c.display_order, c.id))
         if kids:
             subtotal = totals.get(top.id, 0) + sum(totals.get(k.id, 0) for k in kids)
-            rows.append({"type": "header", "name": top.name, "kind": top.kind, "total": subtotal})
+            rows.append({"kind": top.kind, "parent": top.name, "child": "", "total": subtotal, "is_group": True})
             for k in kids:
-                rows.append({"type": "leaf", "name": k.name, "kind": k.kind, "total": totals.get(k.id, 0), "child": True})
+                rows.append({"kind": k.kind, "parent": "", "child": k.name, "total": totals.get(k.id, 0), "is_group": False})
         else:
-            rows.append({"type": "leaf", "name": top.name, "kind": top.kind, "total": totals.get(top.id, 0), "child": False})
+            rows.append({"kind": top.kind, "parent": top.name, "child": "", "total": totals.get(top.id, 0), "is_group": False})
     return rows
 
 
@@ -421,6 +425,41 @@ def delete_category(request: Request, category_id: int, db: Session = Depends(ge
     db.delete(c)
     db.commit()
     return _masters_response(request, db, f"費目「{name}」を削除しました。")
+
+
+@router.post("/category/{category_id}/reparent", response_class=HTMLResponse)
+def reparent_category(
+    request: Request, category_id: int, parent_id: Optional[int] = Form(None), db: Session = Depends(get_db)
+):
+    """既存の費目を、選択した最上位費目の子に移動する（または最上位へ戻す）。階層は2段まで。"""
+    c = db.get(Category, category_id)
+    if c is None:
+        return _masters_response(request, db, "対象の費目が見つかりません。")
+    if db.scalar(select(Category.id).where(Category.parent_id == category_id).limit(1)) is not None:
+        return _masters_response(request, db, f"「{c.name}」は子費目を持つため移動できません（先に子を移動/削除）。")
+
+    new_parent = parent_id or None
+    if new_parent is None:
+        c.parent_id = None
+        notice = f"「{c.name}」を最上位に移動しました。"
+    else:
+        if new_parent == category_id:
+            return _masters_response(request, db, "自分自身は親に指定できません。")
+        parent = db.get(Category, new_parent)
+        if parent is None:
+            return _masters_response(request, db, "移動先の費目が見つかりません。")
+        if parent.parent_id is not None:
+            return _masters_response(request, db, "移動先は最上位の費目のみ選べます（階層は2段まで）。")
+        if db.scalar(select(Category.id).where(Category.parent_id == parent.id, Category.name == c.name, Category.id != c.id).limit(1)) is not None:
+            return _masters_response(request, db, f"「{parent.name}」に同名の「{c.name}」が既にあります。")
+        c.parent_id = parent.id
+        c.kind = parent.kind  # 子は親の種別に合わせる
+        notice = f"「{c.name}」を「{parent.name}」の子に移動しました。"
+
+    # 並びは末尾へ
+    c.display_order = (db.scalar(select(Category.display_order).order_by(Category.display_order.desc())) or 0) + 1
+    db.commit()
+    return _masters_response(request, db, notice)
 
 
 @router.post("/category/{category_id}/move", response_class=HTMLResponse)

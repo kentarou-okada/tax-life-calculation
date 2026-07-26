@@ -128,9 +128,10 @@ code { background: #eef2ff; padding: 0.1rem 0.35rem; border-radius: 4px; font-si
 .summary-table .neg { color: var(--err); }
 .summary-table.small td, .summary-table.small th { font-size: 0.85rem; }
 .cat-annual th { text-align: left; font-weight: 500; }
-.cat-annual tr.grp th { font-weight: 700; background: #f1f5f9; }
-.cat-annual tr.grp td { font-weight: 700; background: #f1f5f9; }
-.cat-annual th.child { padding-left: 1.4rem; color: var(--muted); }
+.cat-annual .parent-col { white-space: nowrap; }
+.cat-annual .child-col { color: var(--muted); }
+.cat-annual tr.grp th, .cat-annual tr.grp td { font-weight: 700; background: #f1f5f9; }
+.cat-annual tr.grp .child-col { color: inherit; }
 
 .month-tabs { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.75rem; }
 .month-tabs .tab { border: 1px solid var(--line); background: #fff; padding: 0.3rem 0.6rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
@@ -162,6 +163,8 @@ code { background: #eef2ff; padding: 0.1rem 0.35rem; border-radius: 4px; font-si
 .master-table tr.inactive { opacity: 0.5; }
 .inline-edit { display: flex; align-items: center; gap: 0.35rem; margin: 0; }
 .inline-edit input[type="text"] { padding: 0.25rem 0.4rem; }
+.inline-edit.reparent { margin-top: 0.25rem; font-size: 0.8rem; }
+.inline-edit.reparent select { padding: 0.2rem 0.3rem; font-size: 0.8rem; max-width: 9rem; }
 .child-mark { color: var(--muted); }
 .add-row { display: flex; gap: 0.4rem; margin-top: 0.6rem; align-items: center; }
 .add-row.wrap { flex-wrap: wrap; }

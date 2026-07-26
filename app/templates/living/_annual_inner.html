@@ -56,21 +56,17 @@
   <div class="table-scroll">
     <table class="summary-table small cat-annual">
       <thead>
-        <tr><th>費目</th><th>年間合計</th></tr>
+        <tr><th>費目(親)</th><th>費目(子)</th><th>年間合計</th></tr>
       </thead>
       <tbody>
         {% for row in category_annual %}
-          {% if row.type == 'header' %}
-            <tr class="grp">
-              <th>{{ row.name }}<span class="kind-tag {{ row.kind }}">{{ kind_mark[row.kind] }}</span></th>
-              <td>{{ "{:,}".format(row.total) }}</td>
-            </tr>
-          {% else %}
-            <tr>
-              <th class="{{ 'child' if row.child }}">{{ row.name }}</th>
-              <td>{{ "{:,}".format(row.total) }}</td>
-            </tr>
-          {% endif %}
+          <tr class="{{ 'grp' if row.is_group }}">
+            <th class="parent-col">
+              {% if row.parent %}{{ row.parent }}<span class="kind-tag {{ row.kind }}">{{ kind_mark[row.kind] }}</span>{% endif %}
+            </th>
+            <th class="child-col">{{ row.child }}</th>
+            <td>{{ "{:,}".format(row.total) }}</td>
+          </tr>
         {% endfor %}
       </tbody>
     </table>

@@ -48,6 +48,19 @@
                   <input type="text" name="name" value="{{ c.name }}">
                   <button type="submit" class="ghost tiny">改名</button>
                 </form>
+                <form hx-post="/living/category/{{ c.id }}/reparent" hx-target="#masters-body" hx-swap="outerHTML"
+                      class="inline-edit reparent">
+                  <span class="muted">親：</span>
+                  <select name="parent_id">
+                    <option value="">（最上位）</option>
+                    {% for p in top_categories %}
+                      {% if p.id != c.id %}
+                        <option value="{{ p.id }}" {% if c.parent_id == p.id %}selected{% endif %}>{{ p.name }}</option>
+                      {% endif %}
+                    {% endfor %}
+                  </select>
+                  <button type="submit" class="ghost tiny">移動</button>
+                </form>
               </td>
               <td class="right nowrap">
                 <button type="button" class="ghost tiny" title="上へ"
@@ -83,7 +96,7 @@
         </select>
         <button type="submit" class="primary">追加</button>
       </form>
-      <p class="hint muted">※ 子として追加すると種別は親に合わせます。使わない費目は「非表示」で一覧・グリッドから外せます（履歴は保持）。</p>
+      <p class="hint muted">※ 「親」を選んで「移動」で既存費目を子に移せます（種別は親に合わせ、階層は2段まで）。使わない費目は「非表示」で一覧・グリッドから外せます（履歴は保持）。</p>
     </div>
   </div>
 </div>
