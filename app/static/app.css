@@ -197,10 +197,11 @@ button.ghost.tiny { padding: 0.15rem 0.45rem; font-size: 0.75rem; }
 .notes-grid { display: flex; flex-wrap: wrap; gap: 0.6rem; }
 .notes-empty { margin: 0.2rem 0; font-size: 0.85rem; }
 .note {
-  width: 12.5rem; min-height: 7rem; display: flex; flex-direction: column;
-  border-radius: 4px; padding: 0.3rem 0.4rem 0.4rem;
+  width: 12.5rem; min-width: 9rem; min-height: 6rem; display: flex; flex-direction: column;
+  flex: 0 0 auto; border-radius: 4px; padding: 0.3rem 0.4rem 0.4rem;
   box-shadow: 0 2px 5px rgba(0,0,0,0.12); transform: rotate(-1deg);
   transition: box-shadow 0.1s, outline-color 0.1s;
+  resize: both; overflow: auto;  /* 右下をドラッグして縦横に伸縮 */
 }
 .note:nth-child(even) { transform: rotate(1deg); }
 /* マウスを合わせた付箋を浮かせて分かりやすく */
@@ -212,8 +213,8 @@ button.ghost.tiny { padding: 0.15rem 0.45rem; font-size: 0.75rem; }
 .note-del { border: none; background: transparent; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0 0.2rem; color: rgba(0,0,0,0.45); }
 .note-del:hover { color: var(--err); }
 .note-text {
-  flex: 1; margin-top: 0.25rem; border: none; background: transparent; resize: vertical;
-  font-family: inherit; font-size: 0.85rem; line-height: 1.35; min-height: 4.5rem; outline: none; color: #333;
+  flex: 1; margin-top: 0.25rem; border: none; background: transparent; resize: none; width: 100%;
+  font-family: inherit; font-size: 0.85rem; line-height: 1.35; min-height: 3.5rem; outline: none; color: #333;
   cursor: text; caret-color: #b91c1c; caret-shape: bar;
 }
 /* クリックして入力中の欄は下線と白背景で「ここに入力」を明示 */
