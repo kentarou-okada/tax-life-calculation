@@ -19,6 +19,10 @@
   </div>
   {% if notice is defined and notice %}<p class="notice-inline">{{ notice }}</p>{% endif %}
 
+  <div id="month-summary">
+    {% include "living/_month_summary_inner.html" %}
+  </div>
+
   {% include "living/_notes.html" %}
 
   <p class="hint muted">セルに金額（円・10円単位）を入力すると即時に集計へ反映されます。空欄・0 は未計上。</p>
@@ -57,9 +61,5 @@
         {% endfor %}
       </tbody>
     </table>
-  </div>
-
-  <div id="month-summary">
-    {% include "living/_month_summary_inner.html" %}
   </div>
 </div>
