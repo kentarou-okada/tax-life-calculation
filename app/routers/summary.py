@@ -16,12 +16,13 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.config import BASE_DIR
+from app.config import BASE_DIR, asset_version
 from app.db import SessionLocal
 from app.routers.living import summary_context
 
 router = APIRouter(tags=["summary"])
 templates = Jinja2Templates(directory=str(Path(BASE_DIR) / "app" / "templates"))
+templates.env.globals["asset_v"] = asset_version()
 
 
 def get_db():

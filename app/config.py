@@ -19,3 +19,15 @@ def database_url() -> str:
     if str(DB_PATH) == ":memory:":
         return "sqlite+pysqlite:///:memory:"
     return f"sqlite+pysqlite:///{DB_PATH.as_posix()}"
+
+
+def asset_version() -> str:
+    """静的CSSのキャッシュバスティング用バージョン（app.css の更新時刻）。
+
+    CSS を変更すると値が変わり、ブラウザが古いキャッシュを使わず最新を取得する。
+    """
+    css = BASE_DIR / "app" / "static" / "app.css"
+    try:
+        return str(int(css.stat().st_mtime))
+    except OSError:
+        return "1"

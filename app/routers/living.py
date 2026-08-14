@@ -21,7 +21,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.config import BASE_DIR
+from app.config import BASE_DIR, asset_version
 from app.core.living import (
     EntryRow,
     aggregate_by_category,
@@ -39,6 +39,7 @@ NOTE_COLORS = ["yellow", "pink", "blue", "green", "orange"]
 
 router = APIRouter(prefix="/living", tags=["living"])
 templates = Jinja2Templates(directory=str(Path(BASE_DIR) / "app" / "templates"))
+templates.env.globals["asset_v"] = asset_version()
 
 KIND_LABELS = {"income": "収入", "expense": "支払", "saving": "積立・税金貯金"}
 

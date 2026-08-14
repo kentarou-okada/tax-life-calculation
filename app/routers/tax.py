@@ -20,7 +20,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.config import BASE_DIR
+from app.config import BASE_DIR, asset_version
 from app.core.tax import Bracket, TaxInputs, TaxParams, TaxResult, calculate_tax
 from app.db import SessionLocal
 from app.models import TaxBracket, TaxYearInput, TaxYearParam
@@ -32,6 +32,7 @@ MAX_YEAR = 2100
 
 router = APIRouter(prefix="/tax", tags=["tax"])
 templates = Jinja2Templates(directory=str(Path(BASE_DIR) / "app" / "templates"))
+templates.env.globals["asset_v"] = asset_version()
 
 # 消費税の算定方式（§5-2：将来切替できる余地。ラベルは画面表示用）
 CONSUMPTION_METHODS: list[tuple[str, str]] = [
