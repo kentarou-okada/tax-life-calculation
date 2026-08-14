@@ -93,6 +93,24 @@ class MonthlyEntry(Base):
     category: Mapped["Category"] = relationship(back_populates="entries")
 
 
+class MonthNote(Base):
+    """各月の付箋メモ。年月ごとに複数持てる。color は付箋の色。"""
+
+    __tablename__ = "month_note"
+    __table_args__ = (
+        CheckConstraint("month BETWEEN 1 AND 12", name="ck_note_month"),
+        Index("idx_note_period", "year", "month"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    year: Mapped[int] = mapped_column(Integer, nullable=False)
+    month: Mapped[int] = mapped_column(Integer, nullable=False)
+    body: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default=text("''"))
+    color: Mapped[str] = mapped_column(String, nullable=False, default="yellow", server_default=text("'yellow'"))
+    created_at: Mapped[str] = mapped_column(Text, nullable=False, server_default=_NOW)
+    updated_at: Mapped[str] = mapped_column(Text, nullable=False, server_default=_NOW)
+
+
 # --------------------------------------------------------------------------- #
 # 機能B：税金算出（Excel を正とする。単位は万円）
 # --------------------------------------------------------------------------- #

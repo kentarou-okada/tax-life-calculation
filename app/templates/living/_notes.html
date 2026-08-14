@@ -1,0 +1,34 @@
+{# 各月の付箋メモ。#notes ごと差し替える。テキストは変更時に自動保存（hx-swap none）。 #}
+<div id="notes" class="notes-area">
+  <div class="notes-head">
+    <span class="muted">付箋メモ（{{ year }}年{{ month }}月）</span>
+    <form hx-post="/living/note" hx-target="#notes" hx-swap="outerHTML" class="inline">
+      <input type="hidden" name="year" value="{{ year }}">
+      <input type="hidden" name="month" value="{{ month }}">
+      <button type="submit" class="ghost tiny">＋付箋を追加</button>
+    </form>
+  </div>
+  <div class="notes-grid">
+    {% for n in notes %}
+      <div class="note note-{{ n.color }}">
+        <div class="note-toolbar">
+          <select name="color" class="note-color" aria-label="付箋の色"
+                  hx-post="/living/note/{{ n.id }}" hx-trigger="change"
+                  hx-target="#notes" hx-swap="outerHTML" hx-include="closest .note">
+            {% for c in ['yellow','pink','blue','green','orange'] %}
+              <option value="{{ c }}" {% if c == n.color %}selected{% endif %}>{{ {'yellow':'黄','pink':'桃','blue':'青','green':'緑','orange':'橙'}[c] }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" class="note-del" title="削除"
+                  hx-post="/living/note/{{ n.id }}/delete" hx-target="#notes" hx-swap="outerHTML"
+                  hx-confirm="この付箋を削除しますか？">×</button>
+        </div>
+        <textarea name="text" class="note-text" placeholder="メモを入力…"
+                  hx-post="/living/note/{{ n.id }}" hx-trigger="change" hx-swap="none">{{ n.body }}</textarea>
+      </div>
+    {% endfor %}
+    {% if not notes %}
+      <p class="muted notes-empty">「＋付箋を追加」でこの月のメモを作成できます。</p>
+    {% endif %}
+  </div>
+</div>

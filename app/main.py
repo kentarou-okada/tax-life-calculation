@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -12,12 +13,21 @@ from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import BASE_DIR
+from app.db import ensure_schema
 from app.routers import export as export_router
 from app.routers import living as living_router
 from app.routers import summary as summary_router
 from app.routers import tax as tax_router
 
-app = FastAPI(title="家計・税金管理")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # 起動時に不足テーブル/列を補う（新テーブル month_note などを既存DBに自動追加）
+    ensure_schema()
+    yield
+
+
+app = FastAPI(title="家計・税金管理", lifespan=lifespan)
 
 app.mount(
     "/static",

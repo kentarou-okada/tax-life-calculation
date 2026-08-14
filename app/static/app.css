@@ -190,6 +190,32 @@ button.ghost.tiny { padding: 0.15rem 0.45rem; font-size: 0.75rem; }
 .backup-msg.ok { color: var(--ok); }
 .backup-msg.err { color: var(--err); }
 
+/* 付箋メモ */
+.notes-area { margin: 0.5rem 0 0.75rem; }
+.notes-head { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.4rem; }
+.notes-head form.inline { margin: 0; display: inline; }
+.notes-grid { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.notes-empty { margin: 0.2rem 0; font-size: 0.85rem; }
+.note {
+  width: 12.5rem; min-height: 7rem; display: flex; flex-direction: column;
+  border-radius: 4px; padding: 0.3rem 0.4rem 0.4rem;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.12); transform: rotate(-1deg);
+}
+.note:nth-child(even) { transform: rotate(1deg); }
+.note-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 0.25rem; }
+.note-color { font-size: 0.7rem; padding: 0.05rem 0.15rem; border: none; background: rgba(255,255,255,0.5); border-radius: 3px; }
+.note-del { border: none; background: transparent; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0 0.2rem; color: rgba(0,0,0,0.45); }
+.note-del:hover { color: var(--err); }
+.note-text {
+  flex: 1; margin-top: 0.25rem; border: none; background: transparent; resize: vertical;
+  font-family: inherit; font-size: 0.85rem; line-height: 1.35; min-height: 4.5rem; outline: none; color: #333;
+}
+.note-yellow { background: #fef9c3; }
+.note-pink   { background: #fbcfe8; }
+.note-blue   { background: #cfe6fb; }
+.note-green  { background: #d1f0d5; }
+.note-orange { background: #fde3c4; }
+
 .month-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
 .month-head h3 { margin: 0; }
 .master-table td.nowrap { white-space: nowrap; }

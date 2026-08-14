@@ -18,7 +18,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import BASE_DIR
@@ -31,8 +31,11 @@ from app.core.living import (
     tax_saving_plan,
 )
 from app.db import SessionLocal
-from app.models import Bank, Category, MonthlyEntry
+from app.models import Bank, Category, MonthlyEntry, MonthNote
 from app.services.tax_service import result_for_year
+
+# 付箋の色（追加時に順番に割り当てる）
+NOTE_COLORS = ["yellow", "pink", "blue", "green", "orange"]
 
 router = APIRouter(prefix="/living", tags=["living"])
 templates = Jinja2Templates(directory=str(Path(BASE_DIR) / "app" / "templates"))
@@ -138,6 +141,17 @@ def _entry_rows(db: Session, year: int, month: Optional[int] = None) -> list[Ent
     ]
 
 
+def _month_notes(db: Session, year: int, month: int) -> list[MonthNote]:
+    """当月の付箋メモ（作成順）。"""
+    return list(
+        db.scalars(
+            select(MonthNote)
+            .where(MonthNote.year == year, MonthNote.month == month)
+            .order_by(MonthNote.id)
+        )
+    )
+
+
 def _month_entry_map(db: Session, year: int, month: int) -> dict[str, int]:
     """'bank_id:category_id' -> amount_yen（当月）。グリッドの値埋めに使う（Jinja で扱いやすい文字列キー）。"""
     result: dict[str, int] = {}
@@ -234,6 +248,7 @@ def _panel_context(request: Request, db: Session, year: int, month: int) -> dict
         "grid_rows": _grid_rows(db, entry_cat_ids),
         "entry_map": entry_map,
         "month_agg": month_agg,
+        "notes": _month_notes(db, year, month),
     }
 
 
@@ -292,6 +307,61 @@ def living_entry(
 
     ctx = _panel_context(request, db, year, month)
     return templates.TemplateResponse(request, "living/_entry_response.html", ctx)
+
+
+# --------------------------------------------------------------------------- #
+# ルート：付箋メモ（各月）
+# --------------------------------------------------------------------------- #
+def _notes_response(request: Request, db: Session, year: int, month: int) -> HTMLResponse:
+    return templates.TemplateResponse(
+        request,
+        "living/_notes.html",
+        {"request": request, "year": year, "month": month, "notes": _month_notes(db, year, month)},
+    )
+
+
+@router.post("/note", response_class=HTMLResponse)
+def add_note(request: Request, year: int = Form(...), month: int = Form(...), db: Session = Depends(get_db)):
+    count = db.scalar(
+        select(func.count()).select_from(MonthNote).where(MonthNote.year == year, MonthNote.month == month)
+    )
+    color = NOTE_COLORS[(count or 0) % len(NOTE_COLORS)]
+    db.add(MonthNote(year=year, month=month, body="", color=color))
+    db.commit()
+    return _notes_response(request, db, year, month)
+
+
+@router.post("/note/{note_id}", response_class=HTMLResponse)
+def save_note(
+    request: Request,
+    note_id: int,
+    text: str = Form(""),
+    color: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+):
+    """本文（と色）を保存。テキストの自動保存は hx-swap=none で本文更新のみ行う。"""
+    n = db.get(MonthNote, note_id)
+    if n is None:
+        return HTMLResponse("")
+    n.body = text
+    if color in NOTE_COLORS:
+        n.color = color
+    db.commit()
+    # 色変更時は付箋の見た目を更新するため一覧を返し、本文のみの保存時は差し替えない
+    if color in NOTE_COLORS:
+        return _notes_response(request, db, n.year, n.month)
+    return HTMLResponse("")
+
+
+@router.post("/note/{note_id}/delete", response_class=HTMLResponse)
+def delete_note(request: Request, note_id: int, db: Session = Depends(get_db)):
+    n = db.get(MonthNote, note_id)
+    if n is None:
+        return HTMLResponse("")
+    year, month = n.year, n.month
+    db.delete(n)
+    db.commit()
+    return _notes_response(request, db, year, month)
 
 
 @router.post("/copy-prev-month", response_class=HTMLResponse)
